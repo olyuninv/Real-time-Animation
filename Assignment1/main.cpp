@@ -13,8 +13,8 @@
 
 #include <GL/glew.h>
 
-#include <GLFW/glfw3.h>
 #include <AntTweakBar.h>
+#include <GLFW/glfw3.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -250,7 +250,13 @@ void display()
 	glfwPollEvents();
 }
 
-int main(void) {
+int main(void) 
+{
+	double speed = 0.3; // Model rotation speed
+
+	GLFWvidmode mode;   // GLFW video mode
+	TwBar *bar;         // Pointer to a tweak bar
+
 	// Initialise GLFW
 	if (!glfwInit())
 	{
@@ -258,7 +264,7 @@ int main(void) {
 		getchar();
 		return -1;
 	}
-
+	
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -278,19 +284,47 @@ int main(void) {
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
+
+
+	// Initialize AntTweakBar
+	TwInit(TW_OPENGL, NULL);
+
+
+	// Create a tweak bar
+	bar = TwNewBar("TweakBar");
+	TwWindowSize(800, 600);
+	int wire = 0;
+	float bgColor[] = { 0.1f, 0.2f, 0.4f };
+	TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
+																									   // Add 'wire' to 'bar': it is a modifable variable of type TW_TYPE_BOOL32 (32 bits boolean). Its key shortcut is [w].
+	TwAddVarRW(bar, "wire", TW_TYPE_BOOL32, &wire,
+		" label='Wireframe mode' key=w help='Toggle wireframe display mode.' ");
+	// Add 'bgColor' to 'bar': it is a modifable variable of type TW_TYPE_COLOR3F (3 floats color)
+	TwAddVarRW(bar, "bgColor", TW_TYPE_COLOR3F, &bgColor, " label='Background color' ");
+
+	//// Create a tweak bar
+	//bar = TwNewBar("TweakBar");
+
+	//// Change the font size, and add a global message to the Help bar.
+	//TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
+
+	//// Create a tweak bar called 'Main' and change its refresh rate, position, size and transparency
+	//TwBar *mainBar = TwNewBar("Main");
+	//TwDefine(" Main label='Main TweakBar' refresh=0.5 position='16 16' size='260 320' alpha=0");
+
+	//TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
+
+	//																								   // Add 'speed' to 'bar': it is a modifable (RW) variable of type TW_TYPE_DOUBLE. Its key shortcuts are [s] and [S].
+	//TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed,
+	//	" label='Rot speed' min=0 max=2 step=0.01 keyIncr=s keyDecr=S help='Rotation speed (turns/second)' ");
+
+	// Set GLFW event callbacks
+	// - Redirect window size changes to the callback function WindowSizeCB
+	
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-
-	// Initialize AntTweakBar
-	TwInit(TW_OPENGL, NULL);
-	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
-
-	// Create a tweak bar called 'Main' and change its refresh rate, position, size and transparency
-	TwBar *mainBar = TwNewBar("Main");
-	TwDefine(" Main label='Main TweakBar' refresh=0.5 position='16 16' size='260 320' alpha=0");
 
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
