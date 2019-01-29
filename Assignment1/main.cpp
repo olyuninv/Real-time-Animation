@@ -52,11 +52,15 @@ void GLFWCALL WindowSizeCB(int width, int height)
 	TwWindowSize(width, height);
 }
 
-void GLFWCALL OnMouseClick(int mouseX, int mouseY)  // your callback function called by GLFW when mouse has moved
+void GLFWCALL mouse_button_callback(int button, int action)
 {
-	if (!TwEventMouseButtonGLFW(mouseX, mouseY))  // send event to AntTweakBar
-	{ 
-		int a = 2;
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	{
+		int xpos, ypos;
+
+		//getting cursor position
+		glfwGetMousePos( &xpos, &ypos);
+		cout << "Cursor Position at (" << xpos << " : " << ypos << endl;
 	}
 }
 
@@ -313,7 +317,7 @@ int main(void)
 	// - Redirect window size changes to the callback function WindowSizeCB
 	glfwSetWindowSizeCallback(WindowSizeCB);
 	// - Directly redirect GLFW mouse button events to AntTweakBar
-	glfwSetMouseButtonCallback(OnMouseClick);
+	glfwSetMouseButtonCallback(mouse_button_callback);
 	// - Directly redirect GLFW mouse position events to AntTweakBar
 	glfwSetMousePosCallback((GLFWmouseposfun)TwEventMousePosGLFW);
 	// - Directly redirect GLFW mouse wheel events to AntTweakBar
