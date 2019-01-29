@@ -1,4 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
+#define GLFW_DLL
 
 #include <stdio.h>
 #include <cstdlib>
@@ -14,7 +15,7 @@
 #include <GL/glew.h>
 
 #include <AntTweakBar.h>
-#include <GLFW/glfw3.h>
+#include <GLFW/glfw.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -33,14 +34,31 @@ using namespace glm;
 using namespace std;
 using namespace Lab1;
 
-// GLFW 
-GLFWwindow* window;
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+double time = 0, dt;// Current time and enlapsed time
+double turn = 0;    // Model turn counter
+double speed = 0.3; // Model rotation speed
 
-TwBar * tweakBar;                      // pointer to the tweak bar 
+// Callback function called by GLFW when window size changes
+void GLFWCALL WindowSizeCB(int width, int height)
+{
+	//// Set OpenGL viewport and camera
+	//glViewport(0, 0, width, height);
+	//glMatrixMode(GL_PROJECTION);
+	//glLoadIdentity();
+	//gluPerspective(40, (double)width / height, 1, 10);
+	//gluLookAt(-1, 0, 3, 0, 0, 0, 0, 1, 0);
+
+	// Send the new window size to AntTweakBar
+	TwWindowSize(width, height);
+}
+
+void GLFWCALL OnMouseClick(int mouseX, int mouseY)  // your callback function called by GLFW when mouse has moved
+{
+	if (!TwEventMouseButtonGLFW(mouseX, mouseY))  // send event to AntTweakBar
+	{ 
+		int a = 2;
+	}
+}
 
 // settings
 const unsigned int SCR_WIDTH = 1920;
@@ -168,13 +186,6 @@ void createObjects()
 	addToIndexBuffer(&boyObject);
 }
 
-void createBar()
-{
-	// Create a new tweak bar and change its label, position and transparency
-	tweakBar = TwNewBar("Lights");
-	TwDefine(" Lights label='Lights TweakBar' position='580 16' alpha=0 help='Use this bar to edit the lights in the scene.' ");
-}
-
 void init()
 {
 	glEnable(GL_DEPTH_TEST);
@@ -186,29 +197,43 @@ void init()
 	glutils.setupUniformVariables();
 
 	createObjects();
-
-	createBar();
 }
 
 void display()
 {
-	float currentFrame = glfwGetTime();
-	deltaTime = currentFrame - lastFrame;	
-	lastFrame = currentFrame;
-
-	// inpuT
-	processInput(window);
-
 	// render
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	glPushMatrix();
-
+	
+	// Rotate model
+	dt = glfwGetTime() - time;
+	if (dt < 0) dt = 0;
+	time += dt;
+	turn += speed*dt;
+	
+	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	glRotated(360.0*turn, 0.4, 1, 0.2);
 
 	// activate shader
 	glUseProgram(glutils.PhongProgramID);
+
+	int pass, numPass;
+
+	// Enable OpenGL transparency and light (could have been done once at init)
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHT0);    // use default light diffuse and position
+	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+	glEnable(GL_LINE_SMOOTH);
+	glLineWidth(3.0);
+	glEnable(GL_CULL_FACE);
+	glEnable(GL_LIGHTING);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	numPass = 2;
 
 	// Update projection 
 	glm::mat4 projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), 0.1f, 100.0f);
@@ -237,26 +262,18 @@ void display()
 
 	glPopMatrix();
 	
-	//glDisableVertexAttribArray(0);
-	//glDisableVertexAttribArray(1);
-	//glDisableVertexAttribArray(2);
-
-	// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-
 	// Draw tweak bars
 	TwDraw();
 
-	glfwSwapBuffers(window);
-	glfwPollEvents();
+	// Present frame buffer
+	glfwSwapBuffers();
 }
 
 int main(void) 
 {
-	double speed = 0.3; // Model rotation speed
-
 	GLFWvidmode mode;   // GLFW video mode
 	TwBar *bar;         // Pointer to a tweak bar
-
+	
 	// Initialise GLFW
 	if (!glfwInit())
 	{
@@ -265,66 +282,49 @@ int main(void)
 		return -1;
 	}
 	
-	glfwWindowHint(GLFW_SAMPLES, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-	// Open a window and create its OpenGL context
-	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Facial Animation", NULL, NULL);
-	if (window == NULL) {
-		fprintf(stderr, "Failed to open GLFW window.\n");
-		getchar();
+	// Create a window
+	glfwGetDesktopMode(&mode);
+	if (!glfwOpenWindow(SCR_WIDTH, SCR_HEIGHT, mode.RedBits, mode.GreenBits, mode.BlueBits,
+		0, 16, 0, GLFW_WINDOW /* or GLFW_FULLSCREEN */))
+	{
+		// A fatal error occured    
+		fprintf(stderr, "Cannot open GLFW window\n");
 		glfwTerminate();
-		return -1;
+		return 1;
 	}
-
-	//detect key inputs
-	//glfwSetKeyCallback(window, keycallback);
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-
+	
+	glfwEnable(GLFW_MOUSE_CURSOR);
+	glfwEnable(GLFW_KEY_REPEAT);
+	glfwSetWindowTitle("Facial Animation");
 
 	// Initialize AntTweakBar
 	TwInit(TW_OPENGL, NULL);
-
-
+	
 	// Create a tweak bar
 	bar = TwNewBar("TweakBar");
-	TwWindowSize(800, 600);
-	int wire = 0;
-	float bgColor[] = { 0.1f, 0.2f, 0.4f };
-	TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
-																									   // Add 'wire' to 'bar': it is a modifable variable of type TW_TYPE_BOOL32 (32 bits boolean). Its key shortcut is [w].
-	TwAddVarRW(bar, "wire", TW_TYPE_BOOL32, &wire,
-		" label='Wireframe mode' key=w help='Toggle wireframe display mode.' ");
-	// Add 'bgColor' to 'bar': it is a modifable variable of type TW_TYPE_COLOR3F (3 floats color)
-	TwAddVarRW(bar, "bgColor", TW_TYPE_COLOR3F, &bgColor, " label='Background color' ");
 
-	//// Create a tweak bar
-	//bar = TwNewBar("TweakBar");
-
-	//// Change the font size, and add a global message to the Help bar.
-	//TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
-
-	//// Create a tweak bar called 'Main' and change its refresh rate, position, size and transparency
-	//TwBar *mainBar = TwNewBar("Main");
-	//TwDefine(" Main label='Main TweakBar' refresh=0.5 position='16 16' size='260 320' alpha=0");
-
-	//TwDefine(" GLOBAL help='This example shows how to integrate AntTweakBar with GLFW and OpenGL.' "); // Message added to the help bar.
-
-	//																								   // Add 'speed' to 'bar': it is a modifable (RW) variable of type TW_TYPE_DOUBLE. Its key shortcuts are [s] and [S].
-	//TwAddVarRW(bar, "speed", TW_TYPE_DOUBLE, &speed,
-	//	" label='Rot speed' min=0 max=2 step=0.01 keyIncr=s keyDecr=S help='Rotation speed (turns/second)' ");
+	// Change the font size, and add a global message to the Help bar.
+	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
+	
+	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	TwAddVarRO(bar, "time", TW_TYPE_DOUBLE, &time, " label='Time' precision=1 help='Time (in seconds).' ");
 
 	// Set GLFW event callbacks
 	// - Redirect window size changes to the callback function WindowSizeCB
+	glfwSetWindowSizeCallback(WindowSizeCB);
+	// - Directly redirect GLFW mouse button events to AntTweakBar
+	glfwSetMouseButtonCallback(OnMouseClick);
+	// - Directly redirect GLFW mouse position events to AntTweakBar
+	glfwSetMousePosCallback((GLFWmouseposfun)TwEventMousePosGLFW);
+	// - Directly redirect GLFW mouse wheel events to AntTweakBar
+	glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
+	// - Directly redirect GLFW key events to AntTweakBar
+	glfwSetKeyCallback((GLFWkeyfun)TwEventKeyGLFW);
+	// - Directly redirect GLFW char events to AntTweakBar
+	glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
 	
-	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
-	glfwSetScrollCallback(window, scroll_callback);
+	// Initialize time
+	time = glfwGetTime();
 
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
@@ -337,7 +337,8 @@ int main(void)
 
 	init();
 
-	while (glfwGetKey(window, GLFW_KEY_ESCAPE) != GLFW_PRESS && glfwWindowShouldClose(window) == 0)
+	// Main loop (repeated while window is not closed and [ESC] is not pressed)
+	while (glfwGetWindowParam(GLFW_OPENED) && !glfwGetKey(GLFW_KEY_ESC))
 	{
 		display();
 	}
@@ -352,77 +353,3 @@ int main(void)
 	return 0;
 }
 
-void processInput(GLFWwindow *window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-
-	float cameraSpeed = 2.5 * deltaTime;
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-		cameraPos += cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-		cameraPos -= cameraSpeed * cameraFront;
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-	if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
-		rotate_angle += 1.0f;	
-}
-
-// glfw: whenever the window size changed (by OS or user resize) this callback function executes
-// ---------------------------------------------------------------------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	// make sure the viewport matches the new window dimensions; note that width and 
-	// height will be significantly larger than specified on retina displays.
-	glViewport(0, 0, width, height);
-}
-
-// glfw: whenever the mouse moves, this callback is called
-// -------------------------------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-	if (firstMouse)
-	{
-		lastX = xpos;
-		lastY = ypos;
-		firstMouse = false;
-	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-	lastX = xpos;
-	lastY = ypos;
-
-	float sensitivity = 0.1f; // change this value to your liking
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	myyaw += xoffset;
-	mypitch += yoffset;
-
-	// make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (mypitch > 89.0f)
-		mypitch = 89.0f;
-	if (mypitch < -89.0f)
-		mypitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(myyaw)) * cos(glm::radians(mypitch));
-	front.y = sin(glm::radians(mypitch));
-	front.z = sin(glm::radians(myyaw)) * cos(glm::radians(mypitch));
-	cameraFront = glm::normalize(front);
-}
-
-// glfw: whenever the mouse scroll wheel scrolls, this callback is called
-// ----------------------------------------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-	if (fov >= 1.0f && fov <= 45.0f)
-		fov -= yoffset;
-	if (fov <= 1.0f)
-		fov = 1.0f;
-	if (fov >= 45.0f)
-		fov = 45.0f;
-}
