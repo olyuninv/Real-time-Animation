@@ -358,7 +358,7 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 	
-	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
+	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj"; 
 	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   // returns 2
 	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = boyObject;
@@ -366,7 +366,7 @@ void createObjects()
 	
 	const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(2.0f, 2.0f, 2.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -499,13 +499,18 @@ void display()
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(&(projection[0][0]));
 		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(&view[0][0]); //*sceneObjects[selectedSceneObject].globalTransform)[0][0]);
+		glLoadMatrixf(&view[0][0]); 
 
 		glBegin(GL_POINTS);
 		glUniform3f(glutils.objectColorLoc, 1.0f, 0.0f, 0.0f);
+		//glutils.updateUniformVariables(sceneObjects[selectedSceneObject].globalTransform);
 
-		auto cursorPoint = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
-		glVertex3f(cursorPoint.X, cursorPoint.Y, cursorPoint.Z);
+		auto cursorPoint = sceneObjects[selectedSceneObject].globalTransform *
+			vec4(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
+				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
+				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z, 1.0);
+		
+		glVertex3f(cursorPoint.x - 5.0f, cursorPoint.y, cursorPoint.z + 0.02f);
 		
 		glEnd();
 		glDisable(GL_POINT_SMOOTH);
