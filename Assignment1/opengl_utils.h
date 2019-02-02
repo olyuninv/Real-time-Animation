@@ -32,7 +32,7 @@ namespace Lab1
 
 		// Shaders
 		GLuint PhongProgramID;
-		//GLuint lightingID;
+		GLuint CircleID;
 
 		// Buffers
 		GLuint VBO;
@@ -141,7 +141,8 @@ namespace Lab1
 		void createShaders()
 		{
 			// Create and compile our shaders
-			PhongProgramID = LoadShaders("../Assignment1/shaders/phong.vs", "../Assignment1/shaders/phong.fs");			
+			PhongProgramID = LoadShaders("../Assignment1/shaders/phong.vs", "../Assignment1/shaders/phong.fs");	
+			CircleID = LoadShaders("../Assignment1/shaders/circle.vs", "../Assignment1/shaders/circle.fs");
 		}
 
 		void createVBO(int numVertices)

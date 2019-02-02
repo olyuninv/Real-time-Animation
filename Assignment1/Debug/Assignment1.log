@@ -1,19 +1,11 @@
-﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (Lab1.vcxproj).  This can lead to incorrect clean and rebuild behavior.
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(391,5): warning MSB8028: The intermediate directory (Debug\) contains files shared from another project (Lab1.vcxproj).  This can lead to incorrect clean and rebuild behavior.
   main.cpp
-e:\tcd\real-time animation\project\dependencies\obj_loader.h(677): warning C4018: '<': signed/unsigned mismatch
-e:\tcd\real-time animation\project\dependencies\obj_loader.h(714): warning C4018: '<': signed/unsigned mismatch
-e:\tcd\real-time animation\project\dependencies\obj_loader.h(720): warning C4018: '<': signed/unsigned mismatch
-e:\tcd\real-time animation\project\dependencies\obj_loader.h(974): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(88): warning C4018: '<': signed/unsigned mismatch
-e:\tcd\real-time animation\project\assignment1\main.cpp(195): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(325): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(353): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(354): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(358): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(359): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(360): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(361): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-e:\tcd\real-time animation\project\assignment1\main.cpp(388): warning C4244: '-=': conversion from 'double' to 'float', possible loss of data
-LINK : warning LNK4098: defaultlib 'MSVCRT' conflicts with use of other libs; use /NODEFAULTLIB:library
-  Assignment1.vcxproj -> E:\TCD\Real-time Animation\Project\Debug\Assignment1.exe
-  Assignment1.vcxproj -> E:\TCD\Real-time Animation\Project\Debug\Assignment1.pdb (Partial PDB)
+e:\tcd\real-time animation\real-time-animation\dependencies\obj_loader.h(677): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\dependencies\obj_loader.h(714): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\dependencies\obj_loader.h(720): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\dependencies\obj_loader.h(974): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+e:\tcd\real-time animation\real-time-animation\assignment1\main.cpp(151): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\assignment1\main.cpp(157): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\assignment1\main.cpp(292): warning C4018: '<': signed/unsigned mismatch
+e:\tcd\real-time animation\real-time-animation\assignment1\main.cpp(415): warning C4101: 'pass': unreferenced local variable
+  Assignment1.vcxproj -> E:\TCD\Real-time Animation\Real-time-Animation\Debug\Assignment1.exe
