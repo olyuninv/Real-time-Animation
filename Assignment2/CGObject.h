@@ -7,7 +7,7 @@
 
 #include "opengl_utils.h"
 
-namespace Assignment1
+namespace Assignment2
 {
 	class CGObject
 	{

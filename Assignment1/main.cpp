@@ -32,7 +32,7 @@
 
 using namespace glm;
 using namespace std;
-using namespace Lab1;
+using namespace Assignment1;
 
 TwBar *bar;         // Pointer to a tweak bar
 
@@ -284,7 +284,7 @@ int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3)
 	}
 }
 
-void addToObjectBuffer(Lab1::CGObject *cg_object)
+void addToObjectBuffer(Assignment1::CGObject *cg_object)
 {
 	int VBOindex = cg_object->startVBO;
 	int IBOindex = cg_object->startIBO;
@@ -299,7 +299,7 @@ void addToObjectBuffer(Lab1::CGObject *cg_object)
 	}
 }
 
-void addToIndexBuffer(Lab1::CGObject *cg_object)
+void addToIndexBuffer(Assignment1::CGObject *cg_object)
 {
 	int IBOindex = cg_object->startIBO;
 	for (auto const& mesh : cg_object->Meshes) {
@@ -323,9 +323,9 @@ std::vector<objl::Mesh> loadMeshes(const char* objFileLocation)
 		throw new exception("Could not load mesh");
 }
 
-Lab1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
+Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
 {
-	Lab1::CGObject object = Lab1::CGObject();
+	Assignment1::CGObject object = Assignment1::CGObject();
 	object.Meshes = meshes;	
 	object.subjectToGravity = subjectToGravity;
 	object.initialTranslateVector = initTransformVector;

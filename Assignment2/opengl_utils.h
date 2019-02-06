@@ -13,7 +13,7 @@
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-namespace Assignment1
+namespace Assignment2
 {
 	class opengl_utils
 	{
@@ -141,8 +141,8 @@ namespace Assignment1
 		void createShaders()
 		{
 			// Create and compile our shaders
-			PhongProgramID = LoadShaders("../Assignment1/shaders/phong.vs", "../Assignment1/shaders/phong.fs");	
-			CircleID = LoadShaders("../Assignment1/shaders/circle.vs", "../Assignment1/shaders/circle.fs");
+			PhongProgramID = LoadShaders("../Assignment2/shaders/phong.vs", "../Assignment2/shaders/phong.fs");	
+			CircleID = LoadShaders("../Assignment2/shaders/circle.vs", "../Assignment2/shaders/circle.fs");
 		}
 
 		void createVBO(int numVertices)

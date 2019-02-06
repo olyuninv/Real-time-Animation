@@ -1,5 +1,5 @@
 #include "CGObject.h"
-namespace Assignment1
+namespace Assignment2
 {
 	CGObject::CGObject()
 	{
