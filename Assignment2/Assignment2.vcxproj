@@ -134,8 +134,8 @@
   <ItemGroup>
     <None Include="shaders\circle.fs" />
     <None Include="shaders\circle.vs" />
-    <None Include="shaders\phong.fs" />
-    <None Include="shaders\phong.vs" />
+    <None Include="shaders\blinnPhong.fs" />
+    <None Include="shaders\blinnPhong.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />

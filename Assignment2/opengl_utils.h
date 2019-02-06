@@ -141,7 +141,7 @@ namespace Assignment2
 		void createShaders()
 		{
 			// Create and compile our shaders
-			PhongProgramID = LoadShaders("../Assignment2/shaders/phong.vs", "../Assignment2/shaders/phong.fs");	
+			PhongProgramID = LoadShaders("../Assignment2/shaders/blinnPhong.vs", "../Assignment2/shaders/blinnPhong.fs");	
 			CircleID = LoadShaders("../Assignment2/shaders/circle.vs", "../Assignment2/shaders/circle.fs");
 		}
 

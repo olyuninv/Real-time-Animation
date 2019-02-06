@@ -88,12 +88,38 @@ float yaw = 0.0f;
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
-	local_roll = *(const float *)value;
+	CGObject *selectedObject = & (static_cast<CGObject *>(clientData)[0]);
+	selectedObject->initialRotateAngle.x = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalRoll(void *value, void *clientData)
 {
-	*(float *)value = local_roll;
+	 CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	 *static_cast<float *>(value) = selectedObject->initialRotateAngle.x;
+}
+
+void TW_CALL SetCallbackLocalPitch(const void *value, void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	selectedObject->initialRotateAngle.z = *(const float *)value;
+}
+
+void TW_CALL GetCallbackLocalPitch(void *value, void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	*static_cast<float *>(value) = selectedObject->initialRotateAngle.z;
+}
+
+void TW_CALL SetCallbackLocalYaw(const void *value, void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	selectedObject->initialRotateAngle.y = *(const float *)value;
+}
+
+void TW_CALL GetCallbackLocalYaw(void *value, void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	*static_cast<float *>(value) = selectedObject->initialRotateAngle.y;
 }
 
 // Callback function called by GLFW when window size changes
@@ -105,13 +131,13 @@ void GLFWCALL WindowSizeCB(int width, int height)
 
 void GLFWCALL mouse_button_callback(int button, int action)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
-		
+		// Do you own logic
 	}
 }
 
-void addToObjectBuffer(Assignment1::CGObject *cg_object)
+void addToObjectBuffer(Assignment2::CGObject *cg_object)
 {
 	int VBOindex = cg_object->startVBO;
 	int IBOindex = cg_object->startIBO;
@@ -126,7 +152,7 @@ void addToObjectBuffer(Assignment1::CGObject *cg_object)
 	}
 }
 
-void addToIndexBuffer(Assignment1::CGObject *cg_object)
+void addToIndexBuffer(CGObject *cg_object)
 {
 	int IBOindex = cg_object->startIBO;
 	for (auto const& mesh : cg_object->Meshes) {
@@ -150,9 +176,9 @@ std::vector<objl::Mesh> loadMeshes(const char* objFileLocation)
 		throw new exception("Could not load mesh");
 }
 
-Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
+CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
 {
-	Assignment1::CGObject object = Assignment1::CGObject();
+	CGObject object = CGObject();
 	object.Meshes = meshes;	
 	object.subjectToGravity = subjectToGravity;
 	object.initialTranslateVector = initTransformVector;
@@ -185,9 +211,10 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 	
-	const char* cubeFileName = "../Assignment2/meshes/Cube/cube.obj";
+	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	cubeObject.initialRotateAngle.x = 2.0f;
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -318,7 +345,13 @@ int main(void)
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
 	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, NULL, " label='Roll' precision=1 help='Roll of the local object.' ");
+	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' min=0 max=360 precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
+
+	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' label='Pitch' min=0 max=360 precision=1 keyincr=p keyDecr=P help='Change pitch of the plane' ");
+
+	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' label='Yaw' min=0 max=360 precision=1 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
 		
 	//TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
 //			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
