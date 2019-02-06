@@ -37,8 +37,8 @@ using namespace Assignment2;
 TwBar *bar;         // Pointer to a tweak bar
 
 // settings
-const unsigned int SCR_WIDTH = 1200;//1920;
-const unsigned int SCR_HEIGHT = 650;//1100;
+const unsigned int SCR_WIDTH = 1200; // 1920;
+const unsigned int SCR_HEIGHT = 650; //1100;
 
 double time = 0, dt;// Current time and enlapsed time
 double turn = 0;    // Model turn counter
@@ -58,8 +58,8 @@ float lastFrame = 0.0f;
 
 // camera movement
 bool firstMouse = true;
-float myyaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float mypitch = 0.0f;
+float cameraYaw = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
+float cameraPitch = 0.0f;
 float lastX = SCR_WIDTH / 2.0; //800.0f / 2.0;
 float lastY = SCR_HEIGHT / 2.0; //600.0 / 2.0;
 float fov = 45.0f;
@@ -68,8 +68,8 @@ float farclip = 100.0f;
 
 // camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -6.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 3.0f, 0.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
@@ -80,7 +80,7 @@ int n_ibovertices = 0;
 GLfloat pointVertex[6];
 
 //lighting position
-glm::vec3 lightPos(10.0f, 10.0f, 3.0f);
+glm::vec3 lightPos(-5.0f, -5.0f, -5.0f);
 
 float local_roll = 0.0f;
 float pitch = 0.0f;
@@ -126,6 +126,8 @@ void TW_CALL GetCallbackLocalYaw(void *value, void *clientData)
 void GLFWCALL WindowSizeCB(int width, int height)
 {
 	// Send the new window size to AntTweakBar
+	glViewport(0, 0, width, height);
+	
 	TwWindowSize(width, height);
 }
 
@@ -133,7 +135,64 @@ void GLFWCALL mouse_button_callback(int button, int action)
 {
 	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
-		// Do you own logic
+		
+		
+	}
+}
+
+void GLFWCALL mouse_position_callback(int xpos, int ypos)
+{
+	if (!TwEventMousePosGLFW(xpos, ypos))   // Send event to AntTweakBar
+	{
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+
+		float xoffset = xpos - lastX;
+		float yoffset = lastY - ypos; //lastY - ypos; // reversed since y-coordinates go from bottom to top
+		lastX = xpos;
+		lastY = ypos;
+
+		float sensitivity = 0.1f; // change this value to your liking
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		cameraYaw += xoffset;
+		cameraPitch += yoffset;
+
+		// make sure that when pitch is out of bounds, screen doesn't get flipped
+		if (cameraPitch > 89.0f)
+			cameraPitch = 89.0f;
+		if (cameraPitch < -89.0f)
+			cameraPitch = -89.0f;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+		front.y = sin(glm::radians(cameraPitch));
+		front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
+		cameraFront = glm::normalize(front);
+	}
+}
+
+void GLFWCALL key_callback(int button, int action)
+{
+	if (!TwEventKeyGLFW(button, action))   // Send event to AntTweakBar
+	{
+		if (256 == button && action == GLFW_PRESS)
+			glfwCloseWindow();
+
+		float cameraSpeed = 2.5 * dt;
+		if (87 == button && action == GLFW_PRESS)
+			cameraPos += cameraSpeed * cameraFront;
+		if (83 == button && action == GLFW_PRESS)
+			cameraPos -= cameraSpeed * cameraFront;
+		if (65 == button && action == GLFW_PRESS)
+			cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		if (68 == button && action == GLFW_PRESS)
+			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	}
 }
 
@@ -213,8 +272,8 @@ void createObjects()
 	
 	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	cubeObject.initialRotateAngle.x = 2.0f;
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	//cubeObject.initialRotateAngle.x = 2.0f;
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -251,28 +310,18 @@ void display()
 	time += dt;
 	turn += speed*dt;
 	
-	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	glRotated(360.0*turn, 0.4, 1, 0.2);
-
+	
 	// activate shader
 	glUseProgram(glutils.PhongProgramID);
 
 	int pass, numPass;
 
 	// Enable OpenGL transparency and light (could have been done once at init)
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHT0);    // use default light diffuse and position
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
-	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(3.0);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_LIGHTING);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);	
+	
+	
 	numPass = 2;
 
 	// Update projection 
@@ -332,8 +381,9 @@ int main(void)
 	}
 	
 	glfwEnable(GLFW_MOUSE_CURSOR);
+	glfwEnable(GLFW_STICKY_KEYS);
 	glfwEnable(GLFW_KEY_REPEAT);
-	glfwSetWindowTitle("Facial Animation");
+	glfwSetWindowTitle("Geometrical Transformations");
 
 	// Initialize AntTweakBar
 	TwInit(TW_OPENGL, NULL);
@@ -345,7 +395,7 @@ int main(void)
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
 	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' min=0 max=360 precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
+	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' label='Pitch' min=0 max=360 precision=1 keyincr=p keyDecr=P help='Change pitch of the plane' ");
@@ -362,11 +412,11 @@ int main(void)
 	// - Directly redirect GLFW mouse button events to AntTweakBar
 	glfwSetMouseButtonCallback(mouse_button_callback);
 	// - Directly redirect GLFW mouse position events to AntTweakBar
-	glfwSetMousePosCallback((GLFWmouseposfun)TwEventMousePosGLFW);
+	glfwSetMousePosCallback(mouse_position_callback);   
 	// - Directly redirect GLFW mouse wheel events to AntTweakBar
 	glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
 	// - Directly redirect GLFW key events to AntTweakBar
-	glfwSetKeyCallback((GLFWkeyfun)TwEventKeyGLFW);
+	glfwSetKeyCallback(key_callback); //  
 	// - Directly redirect GLFW char events to AntTweakBar
 	glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
 	
