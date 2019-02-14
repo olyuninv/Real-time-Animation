@@ -76,13 +76,12 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\Dependencies\anttweakbar-master\lib;..\Dependencies\anttweakbar-master\include;..\Dependencies\glfw3\include;..\Dependencies\glew\include;..\Dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Dependencies\imgui-master\examples;../Dependencies/imgui-master;..\Dependencies\glfw3\include;..\Dependencies\glew\include;..\Dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>..\Dependencies\anttweakbar-master\lib;..\Dependencies\glfw3\lib-vc2015;..\Dependencies\glew\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>anttweakbar.lib;opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <IgnoreSpecificDefaultLibraries>
-      </IgnoreSpecificDefaultLibraries>
+      <AdditionalLibraryDirectories>..\Dependencies\glfw3\lib-vc2015;..\Dependencies\glew\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opengl32.lib;glew32.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>MSVCRT.lib</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -130,6 +129,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Dependencies\imgui-master\examples\imgui_impl_glfw.cpp" />
+    <ClCompile Include="..\Dependencies\imgui-master\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="..\Dependencies\imgui-master\imgui.cpp" />
+    <ClCompile Include="..\Dependencies\imgui-master\imgui_demo.cpp" />
+    <ClCompile Include="..\Dependencies\imgui-master\imgui_draw.cpp" />
+    <ClCompile Include="..\Dependencies\imgui-master\imgui_widgets.cpp" />
     <ClCompile Include="CGObject.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -144,6 +149,14 @@
     <None Include="shaders\phong.vs" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Dependencies\imgui-master\examples\imgui_impl_glfw.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\examples\imgui_impl_opengl3.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imconfig.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imgui.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imgui_internal.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imstb_rectpack.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imstb_textedit.h" />
+    <ClInclude Include="..\Dependencies\imgui-master\imstb_truetype.h" />
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
     <ClInclude Include="CGObject.h" />
     <ClInclude Include="opengl_utils.h" />

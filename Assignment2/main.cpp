@@ -1,4 +1,6 @@
-#define _CRT_SECURE_NO_WARNINGS
+#pragma once
+#define _CRT_SECURE_NO_WARNINGS 1
+#define _WINSOCK_DEPRECATED_NO_WARNINGS 1 
 #define GLFW_DLL
 
 #include <stdio.h>
@@ -37,8 +39,8 @@ using namespace Assignment2;
 TwBar *bar;         // Pointer to a tweak bar
 
 // settings
-const unsigned int SCR_WIDTH = 1200; // 1920;
-const unsigned int SCR_HEIGHT = 650; //1100;
+const unsigned int SCR_WIDTH = 1920; // 1200; // 1920;
+const unsigned int SCR_HEIGHT = 1100; // 650; //1100;
 
 double time = 0, dt;// Current time and enlapsed time
 double turn = 0;    // Model turn counter
@@ -71,6 +73,7 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
+
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
 
@@ -89,37 +92,37 @@ float yaw = 0.0f;
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
 	CGObject *selectedObject = & (static_cast<CGObject *>(clientData)[0]);
-	selectedObject->initialRotateAngle.x = *(const float *)value;
+	selectedObject->eulerAngles.x = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalRoll(void *value, void *clientData)
 {
 	 CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	 *static_cast<float *>(value) = selectedObject->initialRotateAngle.x;
+	 *static_cast<float *>(value) = selectedObject->eulerAngles.x;
 }
 
 void TW_CALL SetCallbackLocalPitch(const void *value, void *clientData)
 {
 	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	selectedObject->initialRotateAngle.z = *(const float *)value;
+	selectedObject->eulerAngles.z = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalPitch(void *value, void *clientData)
 {
 	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	*static_cast<float *>(value) = selectedObject->initialRotateAngle.z;
+	*static_cast<float *>(value) = selectedObject->eulerAngles.z;
 }
 
 void TW_CALL SetCallbackLocalYaw(const void *value, void *clientData)
 {
 	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	selectedObject->initialRotateAngle.y = *(const float *)value;
+	selectedObject->eulerAngles.y = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalYaw(void *value, void *clientData)
 {
 	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	*static_cast<float *>(value) = selectedObject->initialRotateAngle.y;
+	*static_cast<float *>(value) = selectedObject->eulerAngles.y;
 }
 
 // Callback function called by GLFW when window size changes
@@ -173,7 +176,7 @@ void GLFWCALL mouse_position_callback(int xpos, int ypos)
 		front.x = cos(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
 		front.y = sin(glm::radians(cameraPitch));
 		front.z = sin(glm::radians(cameraYaw)) * cos(glm::radians(cameraPitch));
-		cameraFront = glm::normalize(front);
+		//cameraFront = glm::normalize(front);
 	}
 }
 
@@ -270,10 +273,10 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 	
-	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV.obj";
+	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	//cubeObject.initialRotateAngle.x = 2.0f;
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = 2.0f;
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -332,12 +335,15 @@ void display()
 	local1 = glm::translate(local1, cameraPos);
 	glm::mat4 global1 = local1;
 
-	glutils.updateUniformVariables(global1, view, projection);
-		
+	glutils.updateUniformVariables(global1, view, projection);	
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
-		
+	glUniform1f(glutils.ambientCoef, 0.1f);
+	glUniform1f(glutils.diffuseCoef, 1.0f);
+	glUniform1f(glutils.specularCoef, 0.5f);
+	glUniform1i(glutils.shininess, 32);
+
 	// DRAW objects
 	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
@@ -395,13 +401,13 @@ int main(void)
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
 	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
+	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' step=0.1 label='Roll' precision=2 keyincr=r keyDecr=R help='Change roll of the plane' ");
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' label='Pitch' min=0 max=360 precision=1 keyincr=p keyDecr=P help='Change pitch of the plane' ");
+	TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' step=0.1 label='Pitch' precision=2 keyincr=p keyDecr=P help='Change pitch of the plane' ");
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' label='Yaw' min=0 max=360 precision=1 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
+	TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' step=0.1 label='Yaw' precision=2 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
 		
 	//TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
 //			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");

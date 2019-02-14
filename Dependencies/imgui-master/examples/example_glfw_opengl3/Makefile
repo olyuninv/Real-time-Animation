@@ -26,12 +26,12 @@ UNAME_S := $(shell uname -s)
 ##---------------------------------------------------------------------
 
 ## Using OpenGL loader: gl3w [default]
-SOURCES += ../libs/gl3w/GL/gl3w.c
-CXXFLAGS = -I../libs/gl3w
+#SOURCES += ../libs/gl3w/GL/gl3w.c
+#CXXFLAGS = -I../libs/gl3w
 
 ## Using OpenGL loader: glew
 ## (This assumes a system-wide installation)
-# CXXFLAGS = -lGLEW -DIMGUI_IMPL_OPENGL_LOADER_GLEW
+CXXFLAGS = -lGLEW -DIMGUI_IMPL_OPENGL_LOADER_GLEW
 
 ## Using OpenGL loader: glad
 ## (You'll also need to change the rule at line ~77 of this Makefile to compile/link glad.c/.o)

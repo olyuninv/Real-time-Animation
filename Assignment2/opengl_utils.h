@@ -46,6 +46,10 @@ namespace Assignment2
 		GLint lightColorLoc;
 		GLint lightPosLoc;
 		GLint viewPosLoc;
+		GLint ambientCoef;
+		GLint diffuseCoef;
+		GLint specularCoef;
+		GLint shininess;
 
 		static GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path) {
 
@@ -187,6 +191,11 @@ namespace Assignment2
 			lightColorLoc = glGetUniformLocation(PhongProgramID, "lightColor");
 			lightPosLoc = glGetUniformLocation(PhongProgramID, "lightPos");
 			viewPosLoc = glGetUniformLocation(PhongProgramID, "viewPos");
+
+			ambientCoef = glGetUniformLocation(PhongProgramID, "ambientCoef");
+			diffuseCoef = glGetUniformLocation(PhongProgramID, "diffuseCoef");
+			specularCoef = glGetUniformLocation(PhongProgramID, "specularCoef");
+			shininess = glGetUniformLocation(PhongProgramID, "shininess");
 		}
 
 		void getAttributeLocations()

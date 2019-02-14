@@ -1,9 +1,13 @@
 #pragma once
 
+#define GLM_ENABLE_EXPERIMENTAL
 #include <GL/glew.h>
 #include <glm/glm.hpp>
-#include "glm/gtc/matrix_transform.hpp"
+#include <glm/gtx/euler_angles.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include "..\Dependencies\OBJ_loader.h"
+#include "QuatTypes.h"
+#include "EulerAngles.h"
 
 #include "opengl_utils.h"
 
@@ -25,12 +29,13 @@ namespace Assignment2
 		// Initial transform
 		glm::vec3 initialTranslateVector = glm::vec3(0, 0, 0);
 		glm::vec3 initialScaleVector = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 initialRotateAngle = glm::vec3(0, 0, 0);
+		glm::vec3 initialRotateAngleEuler = glm::vec3(0, 0, 0);
 
 		// Transform vectors
 		glm::vec3 position = glm::vec3(0, 0, 0);
 		glm::vec3 scaleVector = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::vec3 rotateAngles = glm::vec3(0, 0, 0);
+		glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
 
 		// Color
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f); // White
