@@ -186,10 +186,10 @@ namespace Assignment2_glfw3
 		void createShaders()
 		{
 			// Create and compile our shaders
-			PhongProgramID = LoadShaders("../Assignment2_glfw3/shaders/phong.vs", "../Assignment2_glfw3/shaders/phong.fs");
+			//PhongProgramID = LoadShaders("../Assignment2_glfw3/shaders/phong.vs", "../Assignment2_glfw3/shaders/phong.fs");
 			BlinnPhongID = LoadShaders("../Assignment2_glfw3/shaders/blinnPhong.vs", "../Assignment2_glfw3/shaders/blinnPhong.fs");
-			GoochID = LoadShaders("../Assignment2_glfw3/shaders/Gooch.vs", "../Assignment2_glfw3/shaders/Gooch.fs");
-			CookTorrenceID = LoadShaders("../Assignment2_glfw3/shaders/CookTorrence.vs", "../Assignment2_glfw3/shaders/CookTorrence.fs");
+			//GoochID = LoadShaders("../Assignment2_glfw3/shaders/Gooch.vs", "../Assignment2_glfw3/shaders/Gooch.fs");
+			//CookTorrenceID = LoadShaders("../Assignment2_glfw3/shaders/CookTorrence.vs", "../Assignment2_glfw3/shaders/CookTorrence.fs");
 		}
 
 		void createVBO(int numVertices)

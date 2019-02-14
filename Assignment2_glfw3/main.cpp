@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <sstream>
 
-#include <AntTweakBar.h>
 #include <GL/glew.h>
-
 #include <GLFW/glfw3.h>
+
+#include <AntTweakBar.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -43,8 +43,10 @@ GLFWwindow* window;
 //void processInput(GLFWwindow *window);
 
 // settings
-const unsigned int SCR_WIDTH = 1920;
-const unsigned int SCR_HEIGHT = 1100;
+const unsigned int SCR_WIDTH = 1200; //1920;
+const unsigned int SCR_HEIGHT = 650;//1100;
+
+double time = 0, dt;// Current time and enlapsed time
 
 opengl_utils glutils; 
 
@@ -132,7 +134,7 @@ void WindowSizeCB(GLFWwindow* window, int width, int height)
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
-	if (!TwEventMouseButtonGLFW3(window, button, action, mods))   // Send event to AntTweakBar
+	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
 
 
@@ -141,7 +143,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void mouse_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (!TwEventCursorPosGLFW3(window, xpos, ypos))   // Send event to AntTweakBar
+	if (!TwEventMousePosGLFW(xpos, ypos))   // Send event to AntTweakBar
 	{
 		if (firstMouse)
 		{
@@ -178,12 +180,12 @@ void mouse_position_callback(GLFWwindow* window, double xpos, double ypos)
 
 void key_callback(GLFWwindow* window, int button, int scancode, int action, int mods)
 {
-	if (!TwEventKeyGLFW3(window, button, scancode, action, mods))   // Send event to AntTweakBar
+	if (!TwEventKeyGLFW(button, action))   // Send event to AntTweakBar
 	{
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 			glfwSetWindowShouldClose(window, true);
 
-		float cameraSpeed = 2.5 * deltaTime;
+		float cameraSpeed = 2.5 * dt;
 		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 			cameraPos += cameraSpeed * cameraFront;
 		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -304,6 +306,11 @@ void display()
 	deltaTime = currentFrame - lastFrame;	
 	lastFrame = currentFrame;
 
+	// Rotate model
+	dt = glfwGetTime() - time;
+	if (dt < 0) dt = 0;
+	time += dt;
+
 	// inpuT
 //	processInput(window);
 
@@ -351,6 +358,7 @@ void display()
 
 		glUniform3f(glutils.objectColorLoc2, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
 		sceneObjects[i].Draw(glutils, false);
+		
 	}
 	
 	glPopMatrix();
@@ -383,8 +391,10 @@ int main(void) {
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE); 
+	
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Geometrical Transformations", NULL, NULL);
 	if (window == NULL) {
@@ -394,34 +404,39 @@ int main(void) {
 		return -1;
 	}
 
-	// Initialize AntTweakBar
-	TwInit(TW_OPENGL, NULL);
-
-	// Create a tweak bar
-	bar = TwNewBar("TweakBar");
-
-	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
-
-	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
-
-	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' label='Pitch' min=0 max=360 precision=1 keyincr=p keyDecr=P help='Change pitch of the plane' ");
-
-	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' label='Yaw' min=0 max=360 precision=1 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
-
 	//detect key inputs
 	//glfwSetKeyCallback(window, keycallback);
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glfwMakeContextCurrent(window);
-	glfwSetFramebufferSizeCallback(window, WindowSizeCB);
-	glfwSetMouseButtonCallback(window, mouse_button_callback);
-	glfwSetCursorPosCallback(window, mouse_position_callback);
+	
+	
+	// Initialize AntTweakBar
+	TwInit(TW_OPENGL_CORE, NULL);
+
+	// Create a tweak bar
+	bar = TwNewBar("TweakBar");
+
+	// Change the font size, and add a global message to the Help bar.
+	TwDefine(" position='200 40' size='240 320' help='This example i.' ");
+
+	//// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	//TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' label='Roll' precision=1 keyincr=r keyDecr=R help='Change roll of the plane' ");
+
+	//// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	//TwAddVarCB(bar, "Pitch", TW_TYPE_FLOAT, SetCallbackLocalPitch, GetCallbackLocalPitch, &sceneObjects, " group='Plane rotation' label='Pitch' min=0 max=360 precision=1 keyincr=p keyDecr=P help='Change pitch of the plane' ");
+
+	//// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	//TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' label='Yaw' min=0 max=360 precision=1 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
+
+	
+	glfwSetFramebufferSizeCallback(window, (GLFWwindowposfun)TwWindowSize);
+	//glfwSetMouseButtonCallback(window, mouse_button_callback);
+	//glfwSetCursorPosCallback(window, mouse_position_callback);
 	//glfwSetScrollCallback(window, scroll_callback);
+	
+	
 
 	// Initialize GLEW
 	glewExperimental = true; // Needed for core profile
