@@ -268,6 +268,60 @@ CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjec
 	return object;
 }
 
+void drawCoordinateLines()
+{
+	glColor3f(1.0, 0.0, 0.0); // red x
+	glUniform3f(glutils.objectColorLoc2, 1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	// x aix
+
+	glVertex3f(-4.0, 0.0f, 0.0f);
+	glVertex3f(4.0, 0.0f, 0.0f);
+
+	// arrow
+	glVertex3f(4.0, 0.0f, 0.0f);
+	glVertex3f(3.8, 0.2f, 0.0f);
+
+	glVertex3f(4.0, 0.0f, 0.0f);
+	glVertex3f(3.8, -0.2f, 0.0f);
+	glEnd();
+	glFlush();
+
+	// y 
+	glColor3f(0.0, 1.0, 0.0); // green y
+	glUniform3f(glutils.objectColorLoc2, 0.0, 1.0, 0.0);
+
+	glBegin(GL_LINES);
+	glVertex3f(0.0, -4.0f, 0.0f);
+	glVertex3f(0.0, 4.0f, 0.0f);
+
+	// arrow
+	glVertex3f(0.0, 4.0f, 0.0f);
+	glVertex3f(0.2, 3.8f, 0.0f);
+
+	glVertex3f(0.0, 4.0f, 0.0f);
+	glVertex3f(-0.2, 3.8f, 0.0f);
+	glEnd();
+	glFlush();
+
+	// z 
+	glColor3f(0.0, 0.0, 1.0); // blue z
+	glUniform3f(glutils.objectColorLoc2, 0.0, 0.0, 1.0);
+
+	glBegin(GL_LINES);
+	glVertex3f(0.0, 0.0f, -4.0f);
+	glVertex3f(0.0, 0.0f, 4.0f);
+
+	// arrow
+	glVertex3f(0.0, 0.0f, 4.0f);
+	glVertex3f(0.0, 0.2f, 3.8f);
+
+	glVertex3f(0.0, 0.0f, 4.0f);
+	glVertex3f(0.0, -0.2f, 3.8f);
+	glEnd();
+	glFlush();
+}
+
 void createObjects()
 {
 	// Shader Attribute locations
@@ -276,7 +330,9 @@ void createObjects()
 	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
 	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = 2.0f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.x = 0.3f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.y = 0.4f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = 0.5f;
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -313,10 +369,8 @@ void display()
 	time += dt;
 	turn += speed*dt;
 	
-	glLoadIdentity();
-	
 	// activate shader
-	glUseProgram(glutils.PhongProgramID);
+	glUseProgram(glutils.SimpleShaderID);
 
 	int pass, numPass;
 
@@ -332,10 +386,29 @@ void display()
 	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 	glm::mat4 local1(1.0f);
-	local1 = glm::translate(local1, cameraPos);
+	//local1 = glm::translate(local1, cameraPos);
 	glm::mat4 global1 = local1;
 
+	glPushMatrix();
+	glLoadIdentity();
+
+	glutils.updateUniformVariablesSimple(global1,
+		glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp),
+		projection);
+
+	drawCoordinateLines();
+
+	glPopMatrix();
+
+	glPushMatrix();
+	glLoadIdentity();
+
+	// activate shader
+	glUseProgram(glutils.PhongProgramID);
+
+
 	glutils.updateUniformVariables(global1, view, projection);	
+
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);

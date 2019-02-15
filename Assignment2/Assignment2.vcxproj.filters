@@ -10,6 +10,9 @@
     <ClCompile Include="EulerAngles.c">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Quaternion.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGObject.h">
@@ -27,18 +30,21 @@
     <ClInclude Include="QuatTypes.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="Quaternion.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\circle.fs">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\circle.vs">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="shaders\blinnPhong.fs">
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\blinnPhong.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleShader.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\simpleShader.vs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

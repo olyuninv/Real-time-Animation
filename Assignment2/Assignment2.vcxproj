@@ -132,12 +132,13 @@
     <ClCompile Include="CGObject.cpp" />
     <ClCompile Include="EulerAngles.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Quaternion.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\circle.fs" />
-    <None Include="shaders\circle.vs" />
     <None Include="shaders\blinnPhong.fs" />
     <None Include="shaders\blinnPhong.vs" />
+    <None Include="shaders\simpleShader.fs" />
+    <None Include="shaders\simpleShader.vs" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
@@ -146,6 +147,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="opengl_utils.h" />
+    <ClInclude Include="Quaternion.h" />
     <ClInclude Include="QuatTypes.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
     </ClInclude>

@@ -5,11 +5,14 @@
 #include <glm/glm.hpp>
 #include <glm/gtx/euler_angles.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include "..\Dependencies\OBJ_loader.h"
 #include "QuatTypes.h"
 #include "EulerAngles.h"
 
 #include "opengl_utils.h"
+#include "Quaternion.h"
 
 namespace Assignment2
 {
@@ -48,6 +51,8 @@ namespace Assignment2
 
 		// Current position
 		glm::mat4 globalTransform = glm::mat4(1.0);
+		// Current orientation
+		glm::mat4 orientation = glm::mat4(1.0);
 		
 		CGObject *Parent = nullptr;
 
