@@ -327,21 +327,24 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 	
-	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj";
-	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.x = 0.3f;
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.y = 0.4f;
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = 0.5f;
-	sceneObjects[numObjects] = cubeObject;
+	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj"; //
+	vector<objl::Mesh> planeMeshes = loadMeshes(cubeFileName);   
+	// split plane into plane and properller
+
+
+	CGObject planeObject = loadObjObject(planeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.x = 0.3f;
+	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.y = 0.4f;
+	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.z = 0.5f;
+	sceneObjects[numObjects] = planeObject;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
 
 	glutils.createIBO(n_ibovertices);
 	
-	addToObjectBuffer(&cubeObject);
-	addToIndexBuffer(&cubeObject);
+	addToObjectBuffer(&planeObject);
+	addToIndexBuffer(&planeObject);
 }
 
 void init()
