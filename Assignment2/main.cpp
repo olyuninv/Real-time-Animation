@@ -445,8 +445,7 @@ void display()
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
 		glutils.updateUniformVariables(globalCGObjectTransform);
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
-
-		glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
+				
 		sceneObjects[i].Draw(glutils);
 	}
 

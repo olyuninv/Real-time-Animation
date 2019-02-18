@@ -17,6 +17,7 @@ namespace Assignment2
 		for (int i = 0; i < this->Meshes.size(); i++) {
 
 			glutils.linkCurrentBuffertoShader(this->VAOs[i], VBOindex, IBOindex);
+			glUniform3f(glutils.objectColorLoc, this->Meshes[i].MeshMaterial.Kd.X, this->Meshes[i].MeshMaterial.Kd.Y, this->Meshes[i].MeshMaterial.Kd.Z);
 
 			glDrawElements(GL_TRIANGLES, this->Meshes[i].Indices.size(), GL_UNSIGNED_INT, (void*)(IBOindex * sizeof(unsigned int)));
 			VBOindex += Meshes[i].Vertices.size();
