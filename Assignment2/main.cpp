@@ -52,7 +52,7 @@ glm::mat4 view;
 CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
 
-opengl_utils glutils; 
+opengl_utils glutils;
 
 // timing
 float deltaTime = 0.0f;	// time between current frame and last frame
@@ -85,18 +85,18 @@ GLfloat pointVertex[6];
 //lighting position
 glm::vec3 lightPos(-5.0f, -5.0f, -5.0f);
 
-bool isRotationQuaternion = true ;  // false - means Euler
+bool isRotationQuaternion = true;  // false - means Euler
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
-	CGObject *selectedObject = & (static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
 	selectedObject->eulerAngles.x = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalRoll(void *value, void *clientData)
 {
-	 CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
-	 *static_cast<float *>(value) = selectedObject->eulerAngles.x;
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	*static_cast<float *>(value) = selectedObject->eulerAngles.x;
 }
 
 void TW_CALL SetCallbackLocalPitch(const void *value, void *clientData)
@@ -128,7 +128,7 @@ void GLFWCALL WindowSizeCB(int width, int height)
 {
 	// Send the new window size to AntTweakBar
 	glViewport(0, 0, width, height);
-	
+
 	TwWindowSize(width, height);
 }
 
@@ -136,8 +136,8 @@ void GLFWCALL mouse_button_callback(int button, int action)
 {
 	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
-		
-		
+
+
 	}
 }
 
@@ -216,7 +216,7 @@ void addToIndexBuffer(CGObject *cg_object)
 {
 	int IBOindex = cg_object->startIBO;
 	for (auto const& mesh : cg_object->Meshes) {
-		glutils.addIBOBufferSubData(IBOindex, mesh.Indices.size(), &mesh.Indices[0]);		
+		glutils.addIBOBufferSubData(IBOindex, mesh.Indices.size(), &mesh.Indices[0]);
 		IBOindex += mesh.Indices.size();
 	}
 }
@@ -239,7 +239,7 @@ std::vector<objl::Mesh> loadMeshes(const char* objFileLocation)
 CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
 {
 	CGObject object = CGObject();
-	object.Meshes = meshes;	
+	object.Meshes = meshes;
 	object.subjectToGravity = subjectToGravity;
 	object.initialTranslateVector = initTransformVector;
 	object.position = initTransformVector;
@@ -253,7 +253,7 @@ CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjec
 
 	if (addToBuffers)
 	{
-		for (auto const& mesh :meshes) {					
+		for (auto const& mesh : meshes) {
 			glutils.generateVertexArray(&(VAOs[numVAOs]));
 			GLuint tmpVAO = VAOs[numVAOs];
 			object.VAOs.push_back(tmpVAO);
@@ -262,7 +262,7 @@ CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjec
 			numVAOs++;
 		}
 	}
-	
+
 	return object;
 }
 
@@ -324,23 +324,46 @@ void createObjects()
 {
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
-	
+
 	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj"; //
-	vector<objl::Mesh> planeMeshes = loadMeshes(cubeFileName);   
+	vector<objl::Mesh> planeMeshes = loadMeshes(cubeFileName);
+
 	// split plane into plane and properller
+	vector<objl::Mesh> planeMesh;
+	vector<objl::Mesh> propellerMesh;
+	for (auto const& mesh : planeMeshes) {
+		if (mesh.MeshName == "plane_Cube.004" ||
+			mesh.MeshName == "Cube.004_Cube.005" ||
+			mesh.MeshName == "Cube.005_Cube.006" ||
+			mesh.MeshName == "Cube.006_Cube.007" ||
+			mesh.MeshName == "Sphere")
+		{
+			planeMesh.push_back(mesh);
+		}
+		else
+		{
+			propellerMesh.push_back(mesh);
+		}
+	}
 
-
-	CGObject planeObject = loadObjObject(planeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	CGObject planeObject = loadObjObject(planeMesh, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); 
 	planeObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
 	sceneObjects[numObjects] = planeObject;
+	numObjects++;
+
+	CGObject propellerObject = loadObjObject(propellerMesh, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, &sceneObjects[0]);
+	//propellerObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
+	sceneObjects[numObjects] = propellerObject;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
 
 	glutils.createIBO(n_ibovertices);
-	
+
 	addToObjectBuffer(&planeObject);
+	addToObjectBuffer(&propellerObject);
 	addToIndexBuffer(&planeObject);
+	addToIndexBuffer(&propellerObject);
 }
 
 void init()
@@ -350,7 +373,7 @@ void init()
 	glutils = opengl_utils();
 
 	glutils.createShaders();
-	
+
 	glutils.setupUniformVariables();
 
 	createObjects();
@@ -361,13 +384,13 @@ void display()
 	// render
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	// Rotate model
 	dt = glfwGetTime() - time;
 	if (dt < 0) dt = 0;
 	time += dt;
-	turn += speed*dt;
-	
+	turn += speed * dt;
+
 	// activate shader
 	glUseProgram(glutils.SimpleShaderID);
 
@@ -376,8 +399,8 @@ void display()
 	// Enable OpenGL transparency and light (could have been done once at init)
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);	
-	
-	
+
+
 	numPass = 2;
 
 	// Update projection 
@@ -406,7 +429,7 @@ void display()
 	glUseProgram(glutils.PhongProgramID);
 
 
-	glutils.updateUniformVariables(global1, view, projection);	
+	glutils.updateUniformVariables(global1, view, projection);
 
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
@@ -426,19 +449,21 @@ void display()
 		glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
 		sceneObjects[i].Draw(glutils);
 	}
-	
+
 	glPopMatrix();
 	// Draw tweak bars
 	TwDraw();
+
+	sceneObjects[1].eulerAngles.x += 0.01f;
 
 	// Present frame buffer
 	glfwSwapBuffers();
 }
 
-int main(void) 
+int main(void)
 {
 	GLFWvidmode mode;   // GLFW video mode
-	
+
 	// Initialise GLFW
 	if (!glfwInit())
 	{
@@ -446,7 +471,7 @@ int main(void)
 		getchar();
 		return -1;
 	}
-	
+
 	// Create a window
 	glfwGetDesktopMode(&mode);
 	if (!glfwOpenWindow(SCR_WIDTH, SCR_HEIGHT, mode.RedBits, mode.GreenBits, mode.BlueBits,
@@ -457,7 +482,7 @@ int main(void)
 		glfwTerminate();
 		return 1;
 	}
-	
+
 	glfwEnable(GLFW_MOUSE_CURSOR);
 	glfwEnable(GLFW_STICKY_KEYS);
 	glfwEnable(GLFW_KEY_REPEAT);
@@ -465,13 +490,13 @@ int main(void)
 
 	// Initialize AntTweakBar
 	TwInit(TW_OPENGL, NULL);
-	
+
 	// Create a tweak bar
 	bar = TwNewBar("TweakBar");
 
 	// Change the font size, and add a global message to the Help bar.
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
-	
+
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarCB(bar, "Roll", TW_TYPE_FLOAT, SetCallbackLocalRoll, GetCallbackLocalRoll, &sceneObjects, " group='Plane rotation' step=0.1 label='Roll' precision=2 keyincr=r keyDecr=R help='Change roll of the plane' ");
 
@@ -480,7 +505,7 @@ int main(void)
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarCB(bar, "Yaw", TW_TYPE_FLOAT, SetCallbackLocalYaw, GetCallbackLocalYaw, &sceneObjects, " group='Plane rotation' step=0.1 label='Yaw' precision=2 keyincr=y keyDecr=Y help='Change yaw of the plane' ");
-		
+
 	//TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
 //			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
 
@@ -490,14 +515,14 @@ int main(void)
 	// - Directly redirect GLFW mouse button events to AntTweakBar
 	glfwSetMouseButtonCallback(mouse_button_callback);
 	// - Directly redirect GLFW mouse position events to AntTweakBar
-	glfwSetMousePosCallback(mouse_position_callback);   
+	glfwSetMousePosCallback(mouse_position_callback);
 	// - Directly redirect GLFW mouse wheel events to AntTweakBar
 	glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
 	// - Directly redirect GLFW key events to AntTweakBar
 	glfwSetKeyCallback(key_callback); //  
 	// - Directly redirect GLFW char events to AntTweakBar
 	glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
-	
+
 	// Initialize time
 	time = glfwGetTime();
 
@@ -522,7 +547,7 @@ int main(void)
 	glutils.deleteVertexArrays();
 	glutils.deletePrograms();
 	glutils.deleteBuffers();
-	
+
 	TwTerminate();
 	glfwTerminate();
 	return 0;

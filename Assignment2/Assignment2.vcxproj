@@ -130,9 +130,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="CGObject.cpp" />
-    <ClCompile Include="EulerAngles.c" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Quaternion.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\blinnPhong.fs" />
@@ -143,14 +141,7 @@
   <ItemGroup>
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
     <ClInclude Include="CGObject.h" />
-    <ClInclude Include="EulerAngles.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-    </ClInclude>
     <ClInclude Include="opengl_utils.h" />
-    <ClInclude Include="Quaternion.h" />
-    <ClInclude Include="QuatTypes.h">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
-    </ClInclude>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

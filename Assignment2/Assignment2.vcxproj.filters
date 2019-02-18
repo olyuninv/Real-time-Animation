@@ -7,12 +7,6 @@
     <ClCompile Include="main.cpp">
       <Filter>source</Filter>
     </ClCompile>
-    <ClCompile Include="EulerAngles.c">
-      <Filter>source</Filter>
-    </ClCompile>
-    <ClCompile Include="Quaternion.cpp">
-      <Filter>source</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGObject.h">
@@ -22,15 +16,6 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="opengl_utils.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="EulerAngles.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="QuatTypes.h">
-      <Filter>Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="Quaternion.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

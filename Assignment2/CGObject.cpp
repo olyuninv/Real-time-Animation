@@ -106,7 +106,7 @@ namespace Assignment2
 
 		localTransform = glm::scale(localTransform, this->initialScaleVector);
 
-		glm::mat4 parentTransform = Parent == nullptr ? glm::mat4(1.0) : Parent->globalTransform;
+		glm::mat4 parentTransform = this->Parent == nullptr ? glm::mat4(1.0) : this->Parent->globalTransform;
 
 		return parentTransform * localTransform;
 	}
