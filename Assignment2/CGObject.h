@@ -4,15 +4,15 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/euler_angles.hpp>
+
 #include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 #include "..\Dependencies\OBJ_loader.h"
-#include "QuatTypes.h"
-#include "EulerAngles.h"
 
 #include "opengl_utils.h"
-#include "Quaternion.h"
+
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace Assignment2
 {
@@ -57,6 +57,6 @@ namespace Assignment2
 		CGObject *Parent = nullptr;
 
 		void Draw(opengl_utils glutils);
-		glm::mat4 createTransform();
+		glm::mat4 createTransform(bool rotationQuaternion);
 	};
 }

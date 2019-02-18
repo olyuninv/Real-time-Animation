@@ -85,9 +85,7 @@ GLfloat pointVertex[6];
 //lighting position
 glm::vec3 lightPos(-5.0f, -5.0f, -5.0f);
 
-float local_roll = 0.0f;
-float pitch = 0.0f;
-float yaw = 0.0f;
+bool isRotationQuaternion = true ;  // false - means Euler
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
@@ -330,9 +328,9 @@ void createObjects()
 	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
 	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.x = 0.3f;
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.y = 0.4f;
-	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = 0.5f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.x = cubeObject.rotateAngles.x = 0.3f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.y = cubeObject.rotateAngles.y = 0.4f;
+	cubeObject.initialRotateAngleEuler.z = cubeObject.eulerAngles.z = cubeObject.rotateAngles.z = 0.5f;
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -420,7 +418,7 @@ void display()
 	// DRAW objects
 	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
-		mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
+		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
 		glutils.updateUniformVariables(globalCGObjectTransform);
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
 
