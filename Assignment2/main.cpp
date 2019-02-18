@@ -85,9 +85,7 @@ GLfloat pointVertex[6];
 //lighting position
 glm::vec3 lightPos(-5.0f, -5.0f, -5.0f);
 
-float local_roll = 0.0f;
-float pitch = 0.0f;
-float yaw = 0.0f;
+bool isRotationQuaternion = true ;  // false - means Euler
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
@@ -333,9 +331,7 @@ void createObjects()
 
 
 	CGObject planeObject = loadObjObject(planeMeshes, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
-	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.x = 0.3f;
-	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.y = 0.4f;
-	planeObject.initialRotateAngleEuler.z = planeObject.eulerAngles.z = 0.5f;
+	planeObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
 	sceneObjects[numObjects] = planeObject;
 	numObjects++;
 
@@ -423,7 +419,7 @@ void display()
 	// DRAW objects
 	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
-		mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
+		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
 		glutils.updateUniformVariables(globalCGObjectTransform);
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
 

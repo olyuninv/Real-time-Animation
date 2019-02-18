@@ -15,7 +15,7 @@ namespace Assignment2
 		int VBOindex = this->startVBO;
 		int IBOindex = this->startIBO;
 		for (int i = 0; i < this->Meshes.size(); i++) {
-			
+
 			glutils.linkCurrentBuffertoShader(this->VAOs[i], VBOindex, IBOindex);
 
 			glDrawElements(GL_TRIANGLES, this->Meshes[i].Indices.size(), GL_UNSIGNED_INT, (void*)(IBOindex * sizeof(unsigned int)));
@@ -58,20 +58,56 @@ namespace Assignment2
 	//	return Result;
 	//}
 
-	glm::mat4 CGObject::createTransform()
+	void CGObject::setInitialRotation(glm::vec3 initialRotationEuler)
+	{
+		this->initialRotateAngleEuler = initialRotationEuler;
+		this->eulerAngles = initialRotationEuler;
+		this->rotateAngles = initialRotationEuler;
+		glm::quat initialQuatRotation = glm::quat(this->initialRotateAngleEuler);
+		glm::mat4 rotationMatrix = glm::toMat4(initialQuatRotation);
+
+		this->orientation = glm::mat4(rotationMatrix);
+	}
+
+	glm::mat4 CGObject::createTransform(bool isRotationQuaternion)
 	{
 		glm::mat4 localTransform = glm::mat4(1.0);
-									   
+
 		localTransform = glm::translate(localTransform, this->position);
 
-		localTransform = glm::rotate(localTransform, this->eulerAngles.z, glm::vec3(0, 0, 1));
-		localTransform = glm::rotate(localTransform, this->eulerAngles.y, glm::vec3(0, 1, 0));
-		localTransform = glm::rotate(localTransform, this->eulerAngles.x, glm::vec3(1, 0, 0));
+		//glm::mat4 rotationMatrix = glm::EulerAngles(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+
+		glm::mat4 rotationMatrix = glm::mat4(1.0);
+
+		if (isRotationQuaternion)
+		{
+			glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->rotateAngles.x,
+				this->eulerAngles.y - this->rotateAngles.y,
+				this->eulerAngles.z - this->rotateAngles.z);
+
+			glm::quat quaternionRotation = glm::quat(newRotation);
+			rotationMatrix = this->orientation * glm::toMat4(quaternionRotation);
+
+			this->rotateAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			this->orientation = glm::mat4( rotationMatrix);
+
+		}
+		else
+		{
+			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
+			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
+			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
+
+			//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.x, this->eulerAngles.z);
+			//rotationMatrix = glm::eulerAngleXYZ(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+		}
+
+		localTransform = localTransform * rotationMatrix;
 
 		localTransform = glm::scale(localTransform, this->initialScaleVector);
 
 		glm::mat4 parentTransform = Parent == nullptr ? glm::mat4(1.0) : Parent->globalTransform;
-				
+
 		return parentTransform * localTransform;
 	}
 }
