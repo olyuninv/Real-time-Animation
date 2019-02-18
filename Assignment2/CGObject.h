@@ -36,7 +36,7 @@ namespace Assignment2
 		// Transform vectors
 		glm::vec3 position = glm::vec3(0, 0, 0);
 		glm::vec3 scaleVector = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 rotateAngles = glm::vec3(0, 0, 0);
+		glm::vec3 previousEulerAngles = glm::vec3(0, 0, 0);
 		glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
 
 		// Color
@@ -51,7 +51,7 @@ namespace Assignment2
 		// Current position
 		glm::mat4 globalTransform = glm::mat4(1.0);
 		// Current orientation
-		glm::mat4 orientation = glm::mat4(1.0);
+		glm::mat4 previousRotationMatrix = glm::mat4(1.0);
 		
 		CGObject *Parent = nullptr;
 

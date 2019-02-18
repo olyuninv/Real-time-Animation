@@ -3,6 +3,10 @@
 #define _WINSOCK_DEPRECATED_NO_WARNINGS 1 
 #define GLFW_DLL
 
+#define STB_IMAGE_IMPLEMENTATION
+
+#include "stb_image.h"
+
 #include <stdio.h>
 #include <cstdlib>
 #include <stdlib.h>
@@ -73,7 +77,6 @@ glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
 
@@ -83,43 +86,54 @@ int n_ibovertices = 0;
 GLfloat pointVertex[6];
 
 //lighting position
-glm::vec3 lightPos(-5.0f, -5.0f, -5.0f);
+glm::vec3 lightPos(1.0f, 3.0f, 1.0f);
 
 bool isRotationQuaternion = true;  // false - means Euler
 
+unsigned int textureID;
+
+enum viewEnum
+{
+	normalView = 1,
+	firstPerson = 2,
+	thirdPerson = 3
+};
+
+viewEnum viewControl = viewEnum::firstPerson;
+
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	selectedObject->eulerAngles.x = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalRoll(void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	*static_cast<float *>(value) = selectedObject->eulerAngles.x;
 }
 
 void TW_CALL SetCallbackLocalPitch(const void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	selectedObject->eulerAngles.z = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalPitch(void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	*static_cast<float *>(value) = selectedObject->eulerAngles.z;
 }
 
 void TW_CALL SetCallbackLocalYaw(const void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	selectedObject->eulerAngles.y = *(const float *)value;
 }
 
 void TW_CALL GetCallbackLocalYaw(void *value, void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[0]);
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
 	*static_cast<float *>(value) = selectedObject->eulerAngles.y;
 }
 
@@ -325,8 +339,14 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 
-	const char* cubeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj"; //
-	vector<objl::Mesh> planeMeshes = loadMeshes(cubeFileName);
+	const char* cubeFileName = "../Assignment2/meshes/Cube/Cube.obj";
+	vector<objl::Mesh> cubeMesh = loadMeshes(cubeFileName);
+	CGObject cubeObject = loadObjObject(cubeMesh, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
+	sceneObjects[numObjects] = cubeObject;
+	numObjects++;
+
+	const char* planeFileName = "../Assignment2/meshes/small_airplane/planeUV_centered.obj"; //
+	vector<objl::Mesh> planeMeshes = loadMeshes(planeFileName);
 
 	// split plane into plane and properller
 	vector<objl::Mesh> planeMesh;
@@ -346,13 +366,12 @@ void createObjects()
 		}
 	}
 
-	CGObject planeObject = loadObjObject(planeMesh, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(0.3f, 0.3f, 0.3f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); 
-	planeObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
+	CGObject planeObject = loadObjObject(planeMesh, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); 
+	//planeObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
 	sceneObjects[numObjects] = planeObject;
 	numObjects++;
 
-	CGObject propellerObject = loadObjObject(propellerMesh, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, &sceneObjects[0]);
-	//propellerObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
+	CGObject propellerObject = loadObjObject(propellerMesh, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, &sceneObjects[1]);
 	sceneObjects[numObjects] = propellerObject;
 	numObjects++;
 
@@ -360,10 +379,57 @@ void createObjects()
 
 	glutils.createIBO(n_ibovertices);
 
+	addToObjectBuffer(&cubeObject);
 	addToObjectBuffer(&planeObject);
 	addToObjectBuffer(&propellerObject);
+
+	addToIndexBuffer(&cubeObject);
 	addToIndexBuffer(&planeObject);
 	addToIndexBuffer(&propellerObject);
+	
+}
+
+void loadCube()
+{
+	vector<std::string> faces = vector<std::string>();
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_lf.tga");
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_rt.tga");
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_up.tga");
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_dn.tga");
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_ft.tga");
+	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_bk.tga");
+
+	/*faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_lf.tga");
+	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_rt.tga");
+	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_up.tga");
+	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_dn.tga");
+	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_ft.tga");
+	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_bk.tga");*/
+	
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_lf.tga");
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_rt.tga");
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_up.tga");
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_dn.tga");
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_ft.tga");
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_bk.tga"); 
+
+	int width, height, nrChannels;
+	for (unsigned int i = 0; i < faces.size(); i++)
+	{
+		unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+		if (data)
+		{
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+				0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+			);
+			stbi_image_free(data);
+		}
+		else
+		{
+			std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+			stbi_image_free(data);
+		}
+	}
 }
 
 void init()
@@ -373,6 +439,18 @@ void init()
 	glutils = opengl_utils();
 
 	glutils.createShaders();
+
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	loadCube();
+
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
 
 	glutils.setupUniformVariables();
 
@@ -390,7 +468,39 @@ void display()
 	if (dt < 0) dt = 0;
 	time += dt;
 	turn += speed * dt;
+	
+	glPushMatrix();
 
+	glLoadIdentity();
+		
+	// Update projection 
+	glm::mat4 projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), 0.1f, 100.0f);
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	
+	// First Draw cube map - sceneObjects[0]
+	glDepthMask(GL_FALSE);
+	glUseProgram(glutils.CubeMapID);
+
+	glm::mat4 viewCube = glm::mat4(glm::mat3(view));
+	glutils.updateUniformVariablesCubeMap(viewCube, projection);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+	glBindVertexArray(VAOs[0]);
+
+	glutils.bindVertexAttribute(glutils.loc4, 3, sceneObjects[0].startVBO, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.IBO);
+	//glUniform1i(glutils.cubemap_location3, textureID);
+
+	glDrawElements(GL_TRIANGLES, sceneObjects[0].Meshes[0].Indices.size(), GL_UNSIGNED_INT, (void*)(sceneObjects[0].startIBO * sizeof(unsigned int)));
+
+	glDepthMask(GL_TRUE);
+
+	glPopMatrix();
+
+	glPushMatrix();
+
+	glLoadIdentity();
+	
 	// activate shader
 	glUseProgram(glutils.SimpleShaderID);
 
@@ -400,13 +510,6 @@ void display()
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);	
 
-
-	numPass = 2;
-
-	// Update projection 
-	projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), nearclip, farclip);
-	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
 	glm::mat4 local1(1.0f);
 	//local1 = glm::translate(local1, cameraPos);
 	glm::mat4 global1 = local1;
@@ -415,7 +518,7 @@ void display()
 	glLoadIdentity();
 
 	glutils.updateUniformVariablesSimple(global1,
-		glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp),
+		view,
 		projection);
 
 	drawCoordinateLines();
@@ -433,19 +536,38 @@ void display()
 
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
-	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
+	
 	glUniform1f(glutils.ambientCoef, 0.1f);
 	glUniform1f(glutils.diffuseCoef, 1.0f);
 	glUniform1f(glutils.specularCoef, 0.5f);
-	glUniform1i(glutils.shininess, 32);
+	glUniform1i(glutils.shininess, 128);
 
 	// DRAW objects
-	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
+	for (int i = 1; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
-		glutils.updateUniformVariables(globalCGObjectTransform);
-		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
 				
+		if (i == 1 && viewControl == viewEnum::firstPerson)
+		{
+			// link camera to the plane -> i==1 is the plane
+			vec3 cameraFrontFirst = vec3(-1.0f, 0.0, 0.0);
+			vec3 cameraUpFirst = vec3(0.0f, 1.0, 0.0);
+			
+			vec3 firstPersonCameraPosition = vec3(sceneObjects[i].position.x, sceneObjects[i].position.y + 0.7, sceneObjects[i].position.z);
+			view = glm::lookAt(firstPersonCameraPosition, firstPersonCameraPosition + cameraFrontFirst, cameraUpFirst);
+			glutils.updateUniformVariables(globalCGObjectTransform, view, projection);
+			glUniform3f(glutils.viewPosLoc, firstPersonCameraPosition.x, firstPersonCameraPosition.y, firstPersonCameraPosition.z);
+		}
+		else
+		{	
+			// normal view
+			view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+			glutils.updateUniformVariables(globalCGObjectTransform); 
+			glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
+		}
+
+		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
+
 		sceneObjects[i].Draw(glutils);
 	}
 
@@ -453,7 +575,7 @@ void display()
 	// Draw tweak bars
 	TwDraw();
 
-	sceneObjects[1].eulerAngles.x += 0.01f;
+	sceneObjects[2].eulerAngles.x += 0.01f;
 
 	// Present frame buffer
 	glfwSwapBuffers();
@@ -472,6 +594,11 @@ int main(void)
 	}
 
 	// Create a window
+    /*glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);*/
+	
 	glfwGetDesktopMode(&mode);
 	if (!glfwOpenWindow(SCR_WIDTH, SCR_HEIGHT, mode.RedBits, mode.GreenBits, mode.BlueBits,
 		0, 16, 0, GLFW_WINDOW /* or GLFW_FULLSCREEN */))

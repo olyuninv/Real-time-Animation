@@ -17,6 +17,8 @@ namespace Assignment2
 		for (int i = 0; i < this->Meshes.size(); i++) {
 
 			glutils.linkCurrentBuffertoShader(this->VAOs[i], VBOindex, IBOindex);
+			//glUniform3f(glutils.objectColorLoc, this->color.r, this->color.g, this->color.b);
+
 			glUniform3f(glutils.objectColorLoc, this->Meshes[i].MeshMaterial.Kd.X, this->Meshes[i].MeshMaterial.Kd.Y, this->Meshes[i].MeshMaterial.Kd.Z);
 
 			glDrawElements(GL_TRIANGLES, this->Meshes[i].Indices.size(), GL_UNSIGNED_INT, (void*)(IBOindex * sizeof(unsigned int)));
@@ -63,11 +65,11 @@ namespace Assignment2
 	{
 		this->initialRotateAngleEuler = initialRotationEuler;
 		this->eulerAngles = initialRotationEuler;
-		this->rotateAngles = initialRotationEuler;
+		this->previousEulerAngles = initialRotationEuler;
 		glm::quat initialQuatRotation = glm::quat(this->initialRotateAngleEuler);
 		glm::mat4 rotationMatrix = glm::toMat4(initialQuatRotation);
 
-		this->orientation = glm::mat4(rotationMatrix);
+		this->previousRotationMatrix = glm::mat4(rotationMatrix);
 	}
 
 	glm::mat4 CGObject::createTransform(bool isRotationQuaternion)
@@ -82,15 +84,15 @@ namespace Assignment2
 
 		if (isRotationQuaternion)
 		{
-			glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->rotateAngles.x,
-				this->eulerAngles.y - this->rotateAngles.y,
-				this->eulerAngles.z - this->rotateAngles.z);
+			glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->previousEulerAngles.x,
+				this->eulerAngles.y - this->previousEulerAngles.y,
+				this->eulerAngles.z - this->previousEulerAngles.z);
 
 			glm::quat quaternionRotation = glm::quat(newRotation);
-			rotationMatrix = this->orientation * glm::toMat4(quaternionRotation);
+			rotationMatrix = this->previousRotationMatrix * glm::toMat4(quaternionRotation);
 
-			this->rotateAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
-			this->orientation = glm::mat4( rotationMatrix);
+			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			this->previousRotationMatrix = glm::mat4( rotationMatrix);
 
 		}
 		else

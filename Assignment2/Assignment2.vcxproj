@@ -135,6 +135,8 @@
   <ItemGroup>
     <None Include="shaders\blinnPhong.fs" />
     <None Include="shaders\blinnPhong.vs" />
+    <None Include="shaders\cubeMap.fs" />
+    <None Include="shaders\cubeMap.vs" />
     <None Include="shaders\simpleShader.fs" />
     <None Include="shaders\simpleShader.vs" />
   </ItemGroup>
@@ -142,6 +144,7 @@
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
     <ClInclude Include="CGObject.h" />
     <ClInclude Include="opengl_utils.h" />
+    <ClInclude Include="stb_image.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -18,6 +18,9 @@
     <ClInclude Include="opengl_utils.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\blinnPhong.fs">
@@ -30,6 +33,12 @@
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\simpleShader.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\cubeMap.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\cubeMap.vs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

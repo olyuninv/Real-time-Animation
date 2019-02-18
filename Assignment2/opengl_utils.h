@@ -29,10 +29,13 @@ namespace Assignment2
 		GLuint loc1;
 		GLuint loc2;
 		GLuint loc3;
+		GLuint loc4;
 
 		// Shaders
 		GLuint PhongProgramID;
 		GLuint SimpleShaderID;
+
+		GLuint CubeMapID;
 
 		// Buffers
 		GLuint VBO;
@@ -54,6 +57,10 @@ namespace Assignment2
 		GLint diffuseCoef;
 		GLint specularCoef;
 		GLint shininess;
+
+		GLint view_mat_location3;
+		GLint proj_mat_location3;
+		GLint cubemap_location3;
 
 		static GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path) {
 
@@ -151,6 +158,7 @@ namespace Assignment2
 			// Create and compile our shaders
 			PhongProgramID = LoadShaders("../Assignment2/shaders/blinnPhong.vs", "../Assignment2/shaders/blinnPhong.fs");	
 			SimpleShaderID = LoadShaders("../Assignment2/shaders/simpleShader.vs", "../Assignment2/shaders/simpleShader.fs");
+			CubeMapID = LoadShaders("../Assignment2/shaders/cubeMap.vs", "../Assignment2/shaders/cubeMap.fs");
 		}
 
 		void createVBO(int numVertices)
@@ -205,6 +213,10 @@ namespace Assignment2
 			view_mat_location2 = glGetUniformLocation(SimpleShaderID, "view");
 			proj_mat_location2 = glGetUniformLocation(SimpleShaderID, "proj");
 			objectColorLoc2 = glGetUniformLocation(SimpleShaderID, "objectColor");
+
+			view_mat_location3 = glGetUniformLocation(CubeMapID, "view");
+			proj_mat_location3 = glGetUniformLocation(CubeMapID, "projection");
+			cubemap_location3 = glGetUniformLocation(CubeMapID, "skybox");
 		}
 
 		void getAttributeLocations()
@@ -212,6 +224,7 @@ namespace Assignment2
 			loc1 = glGetAttribLocation(PhongProgramID, "position");
 			loc2 = glGetAttribLocation(PhongProgramID, "normal");
 			loc3 = glGetAttribLocation(PhongProgramID, "texture");
+			loc4 = glGetAttribLocation(CubeMapID, "aPos");
 		}
 
 		void bindVertexAttribute(int location, int locationSize, int startVBO, int offsetVBO)
@@ -231,8 +244,14 @@ namespace Assignment2
 
 			//IBO
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+		}		
+
+		void updateUniformVariablesCubeMap(glm::mat4 view, glm::mat4 persp_proj)
+		{
+			glUniformMatrix4fv(proj_mat_location3, 1, GL_FALSE, &persp_proj[0][0]);
+			glUniformMatrix4fv(view_mat_location3, 1, GL_FALSE, &view[0][0]);
 		}
-		
+
 		void updateUniformVariables(glm::mat4 model)
 		{
 			glUniformMatrix4fv(model_mat_location, 1, GL_FALSE, &model[0][0]);
