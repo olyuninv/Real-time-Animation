@@ -99,7 +99,7 @@ enum viewEnum
 	thirdPerson = 3
 };
 
-viewEnum viewControl = viewEnum::firstPerson;
+viewEnum viewControl = viewEnum::thirdPerson;
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
@@ -366,7 +366,7 @@ void createObjects()
 		}
 	}
 
-	CGObject planeObject = loadObjObject(planeMesh, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL); 
+	CGObject planeObject = loadObjObject(planeMesh, true, true, vec3(2.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 0.5f, 0.0f), 0.65f, NULL);
 	//planeObject.setInitialRotation(vec3(0.3f, 0.4f, 0.5f));
 	sceneObjects[numObjects] = planeObject;
 	numObjects++;
@@ -386,32 +386,33 @@ void createObjects()
 	addToIndexBuffer(&cubeObject);
 	addToIndexBuffer(&planeObject);
 	addToIndexBuffer(&propellerObject);
-	
+
 }
 
 void loadCube()
 {
 	vector<std::string> faces = vector<std::string>();
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_lf.tga");
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_rt.tga");
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_up.tga");
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_dn.tga");
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_ft.tga");
-	//faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_bk.tga");
 
-	/*faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_lf.tga");
-	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_rt.tga");
-	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_up.tga");
-	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_dn.tga");
-	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_ft.tga");
-	faces.push_back("../Assignment2/meshes/envmap_violentdays/violentdays_bk.tga");*/
-	
-	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_lf.tga");
+	/*faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_lf.tga");
+	faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_rt.tga");
+	faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_up.tga");
+	faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_dn.tga");
+	faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_ft.tga");
+	faces.push_back("../Assignment2/meshes/mp_bleak/bleak-outlook_bk.tga");*/
+
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_lf.tga");
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_rt.tga");
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_up.tga");
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_dn.tga");
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_ft.tga");
+	faces.push_back("../Assignment2/meshes/ely_snow/snow_bk.tga");
+
+	/*faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_lf.tga");
 	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_rt.tga");
 	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_up.tga");
 	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_dn.tga");
 	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_ft.tga");
-	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_bk.tga"); 
+	faces.push_back("../Assignment2/meshes/envmap_stormydays/stormydays_bk.tga"); */
 
 	int width, height, nrChannels;
 	for (unsigned int i = 0; i < faces.size(); i++)
@@ -468,15 +469,51 @@ void display()
 	if (dt < 0) dt = 0;
 	time += dt;
 	turn += speed * dt;
-	
+
 	glPushMatrix();
 
 	glLoadIdentity();
-		
+
 	// Update projection 
 	glm::mat4 projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), 0.1f, 100.0f);
-	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-	
+
+	glm::mat4 view;
+
+	if (viewControl == viewEnum::firstPerson)
+	{
+		// Get plane rotation
+		vec4 cameraFrontFirst = vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+		vec4 cameraUpFirst = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		vec4 cameraDisplacement = vec4(0.0f, 0.7f, 0.0f, 0.0f);
+		
+		cameraFrontFirst = sceneObjects[1].previousRotationMatrix * cameraFrontFirst;
+		cameraUpFirst =  sceneObjects[1].previousRotationMatrix * cameraUpFirst;  //rotate(quat(sceneObjects[i].previousEulerAngles), vec4(cameraUpFirst, 0.0f));
+		cameraDisplacement = sceneObjects[1].previousRotationMatrix * cameraDisplacement;
+
+		vec4 firstPersonCameraPosition = vec4(sceneObjects[1].position.x + cameraDisplacement.x, sceneObjects[1].position.y + cameraDisplacement.y, sceneObjects[1].position.z + cameraDisplacement.z, 1.0);
+		view = glm::lookAt(vec3(firstPersonCameraPosition), vec3(firstPersonCameraPosition + cameraFrontFirst), vec3(cameraUpFirst));
+
+	}
+	else if (viewControl == viewEnum::thirdPerson)
+	{
+		// Get plane rotation
+		vec4 cameraFrontFirst = vec4(-1.0f, 0.0f, 0.0f, 0.0f);
+		vec4 cameraUpFirst = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+		vec4 cameraDisplacement = vec4(6.0f, 2.0f, 0.0f, 0.0f);
+
+		cameraFrontFirst = sceneObjects[1].previousRotationMatrix * cameraFrontFirst;
+		cameraUpFirst = sceneObjects[1].previousRotationMatrix * cameraUpFirst;  //rotate(quat(sceneObjects[i].previousEulerAngles), vec4(cameraUpFirst, 0.0f));
+		cameraDisplacement = sceneObjects[1].previousRotationMatrix * cameraDisplacement;
+
+		vec4 firstPersonCameraPosition = vec4(sceneObjects[1].position.x + cameraDisplacement.x, sceneObjects[1].position.y + cameraDisplacement.y, sceneObjects[1].position.z + cameraDisplacement.z, 1.0);
+		view = glm::lookAt(vec3(firstPersonCameraPosition), vec3(firstPersonCameraPosition + cameraFrontFirst), vec3(cameraUpFirst));
+
+	}
+	else
+	{
+		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	}
+
 	// First Draw cube map - sceneObjects[0]
 	glDepthMask(GL_FALSE);
 	glUseProgram(glutils.CubeMapID);
@@ -500,7 +537,7 @@ void display()
 	glPushMatrix();
 
 	glLoadIdentity();
-	
+
 	// activate shader
 	glUseProgram(glutils.SimpleShaderID);
 
@@ -536,7 +573,8 @@ void display()
 
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
-	
+	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
+
 	glUniform1f(glutils.ambientCoef, 0.1f);
 	glUniform1f(glutils.diffuseCoef, 1.0f);
 	glUniform1f(glutils.specularCoef, 0.5f);
@@ -546,26 +584,8 @@ void display()
 	for (int i = 1; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
-				
-		if (i == 1 && viewControl == viewEnum::firstPerson)
-		{
-			// link camera to the plane -> i==1 is the plane
-			vec3 cameraFrontFirst = vec3(-1.0f, 0.0, 0.0);
-			vec3 cameraUpFirst = vec3(0.0f, 1.0, 0.0);
-			
-			vec3 firstPersonCameraPosition = vec3(sceneObjects[i].position.x, sceneObjects[i].position.y + 0.7, sceneObjects[i].position.z);
-			view = glm::lookAt(firstPersonCameraPosition, firstPersonCameraPosition + cameraFrontFirst, cameraUpFirst);
-			glutils.updateUniformVariables(globalCGObjectTransform, view, projection);
-			glUniform3f(glutils.viewPosLoc, firstPersonCameraPosition.x, firstPersonCameraPosition.y, firstPersonCameraPosition.z);
-		}
-		else
-		{	
-			// normal view
-			view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-			glutils.updateUniformVariables(globalCGObjectTransform); 
-			glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
-		}
-
+		glutils.updateUniformVariables(globalCGObjectTransform);
+		
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
 
 		sceneObjects[i].Draw(glutils);
@@ -594,11 +614,11 @@ int main(void)
 	}
 
 	// Create a window
-    /*glfwWindowHint(GLFW_SAMPLES, 4);
+	/*glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);*/
-	
+
 	glfwGetDesktopMode(&mode);
 	if (!glfwOpenWindow(SCR_WIDTH, SCR_HEIGHT, mode.RedBits, mode.GreenBits, mode.BlueBits,
 		0, 16, 0, GLFW_WINDOW /* or GLFW_FULLSCREEN */))
@@ -634,6 +654,18 @@ int main(void)
 
 	//TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
 //			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
+
+	// Array of drop down items
+	TwEnumVal viewEnum[] = { {viewEnum::firstPerson, "First Person"}, 
+								{viewEnum::thirdPerson, "Third Person"}, 
+								{viewEnum::normalView, "Normal View"} };
+
+	// ATB identifier for the array
+	TwType MeshTwType = TwDefineEnum("ViewEnum", viewEnum, 3);
+
+	// Link it to the tweak bar
+	TwAddVarRW(bar, "ViewControl", MeshTwType, &viewControl, NULL);
+
 
 	// Set GLFW event callbacks
 	// - Redirect window size changes to the callback function WindowSizeCB
