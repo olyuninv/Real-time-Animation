@@ -1,8 +1,15 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="CGObject.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="main.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="CGObject.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
+    <ClCompile Include="Blendshape.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGObject.h">
@@ -15,6 +22,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="dirent.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Blendshape.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>
@@ -38,6 +48,9 @@
     </Filter>
     <Filter Include="Headers">
       <UniqueIdentifier>{54cd1425-7063-4165-847a-6452ff3a604b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="source">
+      <UniqueIdentifier>{b53efdda-6162-441d-85bf-829f3b4eb869}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

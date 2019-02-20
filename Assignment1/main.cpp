@@ -30,6 +30,7 @@
 #include "dirent.h"
 
 #include "..\Dependencies\OBJ_Loader.h"
+#include "Blendshape.h"
 
 void get_files_in_directory(
 	std::set<std::string> &out, //list of file names within directory
@@ -39,6 +40,8 @@ void get_files_in_directory(
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 30
+#define MAX_MARKERS 50
+#define MAX_BLENDSHAPES 50
 
 using namespace glm;
 using namespace std;
@@ -59,6 +62,11 @@ glm::mat4 view;
 
 CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
+
+float* blendshapes[MAX_BLENDSHAPES];
+int numBlendshapes = 0;
+
+vector<CGObject> constraintObjects;
 
 opengl_utils glutils;
 
@@ -87,8 +95,6 @@ int numVAOs = 0;
 
 int n_vbovertices = 0;
 int n_ibovertices = 0;
-
-GLfloat pointVertex[6];
 
 //lighting position
 glm::vec3 lightPos(10.0f, 10.0f, 3.0f);
@@ -214,33 +220,37 @@ void GLFWCALL mouse_button_callback(int button, int action)
 
 								// Set selected vertex - this may be overwritten by a closer point later on
 								foundIntersection = true;
-								vertexSelected = true;
-								selectedSceneObject = sceneIndex;
-								selectedObjectMesh = meshIndex;
-								selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
 
-								auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
-								tw_posX = selectedVertexLocal.X;
-								tw_posY = selectedVertexLocal.Y;
-								tw_posZ = selectedVertexLocal.Z;
+								if (selectedSceneObject != sphereObjectIndex)
+								{
+									vertexSelected = true;
+									selectedSceneObject = sceneIndex;
+									selectedObjectMesh = meshIndex;
+									selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
 
-								if (indexOfClosestPoint == 1)
-								{
-									tw_posX_world = p1.x;
-									tw_posY_world = p1.y;
-									tw_posZ_world = p1.z;
-								}
-								else if (indexOfClosestPoint = 2)
-								{
-									tw_posX_world = p2.x;
-									tw_posY_world = p2.y;
-									tw_posZ_world = p2.z;
-								}
-								else
-								{
-									tw_posX_world = p3.x;
-									tw_posY_world = p3.y;
-									tw_posZ_world = p3.z;
+									auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
+									tw_posX = selectedVertexLocal.X;
+									tw_posY = selectedVertexLocal.Y;
+									tw_posZ = selectedVertexLocal.Z;
+
+									if (indexOfClosestPoint == 1)
+									{
+										tw_posX_world = p1.x;
+										tw_posY_world = p1.y;
+										tw_posZ_world = p1.z;
+									}
+									else if (indexOfClosestPoint = 2)
+									{
+										tw_posX_world = p2.x;
+										tw_posY_world = p2.y;
+										tw_posZ_world = p2.z;
+									}
+									else
+									{
+										tw_posX_world = p3.x;
+										tw_posY_world = p3.y;
+										tw_posZ_world = p3.z;
+									}
 								}
 							}
 						}
@@ -375,13 +385,18 @@ void createObjects()
 	set<string> fileList;
 	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
 
-	/*for (auto const& filename : fileList) {
+	// Load blendshapes
+	for (auto const& filename : fileList) {
 		const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
 		vector<objl::Mesh> cubeMeshes = loadMeshes(fullfileName);  
-		CGObject tmpObject = loadObjObject(cubeMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
-		sceneObjects[numObjects] = tmpObject;
-		numObjects++;
-	}*/
+		float* blendshape1 = blendshape::createBlendshape(cubeMeshes[0].Vertices);
+		blendshapes[numBlendshapes] = blendshape1;
+
+		//float a = blendshapes[numBlendshapes][0];
+		//float b = blendshapes[numBlendshapes][2000];
+
+		numBlendshapes++;
+	}
 
 	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
 	vector<objl::Mesh> testMeshes = loadMeshes(neutralFileName);
@@ -510,9 +525,15 @@ void display()
 			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
 		sceneObjects[sphereObjectIndex].Parent = &sceneObjects[selectedSceneObject];
 
+		// perform scaling opposite to parent
+		sceneObjects[sphereObjectIndex].initialScaleVector = vec3(0.4f / sceneObjects[selectedSceneObject].initialScaleVector.x,
+														0.4f / sceneObjects[selectedSceneObject].initialScaleVector.y,
+														0.4f / sceneObjects[selectedSceneObject].initialScaleVector.z);
+
 		mat4 globalCGObjectTransform = sceneObjects[sphereObjectIndex].createTransform();  //sphere
+				
 		glutils.updateUniformVariables(globalCGObjectTransform);
-		sceneObjects[sphereObjectIndex].globalTransform = globalCGObjectTransform; // keep current state		
+		//sceneObjects[sphereObjectIndex].globalTransform = globalCGObjectTransform; // keep current state		
 
 		glUniform3f(glutils.objectColorLoc, sceneObjects[sphereObjectIndex].color.r, sceneObjects[sphereObjectIndex].color.g, sceneObjects[sphereObjectIndex].color.b);
 		sceneObjects[sphereObjectIndex].Draw(glutils);
@@ -626,6 +647,12 @@ int main(void)
 	glutils.deleteVertexArrays();
 	glutils.deletePrograms();
 	glutils.deleteBuffers();
+
+	// delete blendshapes
+	for (auto bl : blendshapes) {
+		delete[] bl;
+		bl = nullptr;
+	}
 
 	TwTerminate();
 	glfwTerminate();

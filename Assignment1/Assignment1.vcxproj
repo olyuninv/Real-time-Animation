@@ -128,6 +128,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Blendshape.cpp" />
     <ClCompile Include="CGObject.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
@@ -139,6 +140,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
+    <ClInclude Include="Blendshape.h" />
     <ClInclude Include="CGObject.h" />
     <ClInclude Include="dirent.h" />
     <ClInclude Include="opengl_utils.h" />
