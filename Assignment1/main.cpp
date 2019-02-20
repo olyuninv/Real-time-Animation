@@ -95,6 +95,9 @@ glm::vec3 lightPos(10.0f, 10.0f, 3.0f);
 
 // Selected vertex
 bool vertexSelected = false;
+bool markerSelected = false;
+int sphereObjectIndex = -1;
+
 int selectedSceneObject = 0;
 int selectedObjectMesh = 0;
 int selectedVertexIndex = 0;
@@ -372,25 +375,25 @@ void createObjects()
 	set<string> fileList;
 	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
 
-	for (auto const& filename : fileList) {
+	/*for (auto const& filename : fileList) {
 		const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
 		vector<objl::Mesh> cubeMeshes = loadMeshes(fullfileName);  
 		CGObject tmpObject = loadObjObject(cubeMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 		sceneObjects[numObjects] = tmpObject;
 		numObjects++;
-	}
+	}*/
 
-	/*const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
+	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
 	vector<objl::Mesh> testMeshes = loadMeshes(neutralFileName);
 	CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = testObject;
-	numObjects++;*/
+	numObjects++;
 
-	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
+	/*const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
 	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   
 	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); 
 	sceneObjects[numObjects] = boyObject;
-	numObjects++;
+	numObjects++;*/
 
 	const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   
@@ -402,28 +405,29 @@ void createObjects()
 	vector<objl::Mesh> sphereMeshes = loadMeshes(sphereFileName);
 	CGObject sphereObject = loadObjObject(sphereMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = sphereObject;
+	sphereObjectIndex = numObjects;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
 
 	glutils.createIBO(n_ibovertices);
 
-	for (int i = 0; i < fileList.size(); i++) {
+	/*for (int i = 0; i < fileList.size(); i++) {
 		addToObjectBuffer(&sceneObjects[i]);
-	}
+	}*/
 
-	//addToObjectBuffer(&testObject);
-	addToObjectBuffer(&boyObject);
+	addToObjectBuffer(&testObject);
+	//addToObjectBuffer(&boyObject);
 	addToObjectBuffer(&cubeObject);
 	addToObjectBuffer(&sphereObject);
 	
 
-	for (int i = 0; i < fileList.size(); i++) {
+	/*for (int i = 0; i < fileList.size(); i++) {
 		addToIndexBuffer(&sceneObjects[i]);
-	}
+	}*/
 
-	//addToIndexBuffer(&testObject);
-	addToIndexBuffer(&boyObject);
+	addToIndexBuffer(&testObject);
+	//addToIndexBuffer(&boyObject);
 	addToIndexBuffer(&cubeObject);
 	addToIndexBuffer(&sphereObject);
 }
@@ -489,7 +493,7 @@ void display()
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
 
 	// DRAW objects
-	for (int i = 25; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
+	for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
 	{
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
 		glutils.updateUniformVariables(globalCGObjectTransform);
@@ -499,19 +503,19 @@ void display()
 		sceneObjects[i].Draw(glutils);
 	}
 
-	if (vertexSelected) // && selectedSceneObject != )
+	if (vertexSelected && selectedSceneObject != sphereObjectIndex)
 	{
-		sceneObjects[numObjects - 1].position = vec3(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
+		sceneObjects[sphereObjectIndex].position = vec3(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
 			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
 			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
-		sceneObjects[numObjects - 1].Parent = &sceneObjects[selectedSceneObject];
+		sceneObjects[sphereObjectIndex].Parent = &sceneObjects[selectedSceneObject];
 
-		mat4 globalCGObjectTransform = sceneObjects[numObjects - 1].createTransform();  //sphere
+		mat4 globalCGObjectTransform = sceneObjects[sphereObjectIndex].createTransform();  //sphere
 		glutils.updateUniformVariables(globalCGObjectTransform);
-		sceneObjects[numObjects - 1].globalTransform = globalCGObjectTransform; // keep current state		
+		sceneObjects[sphereObjectIndex].globalTransform = globalCGObjectTransform; // keep current state		
 
-		glUniform3f(glutils.objectColorLoc, sceneObjects[numObjects - 1].color.r, sceneObjects[numObjects - 1].color.g, sceneObjects[numObjects - 1].color.b);
-		sceneObjects[numObjects - 1].Draw(glutils);
+		glUniform3f(glutils.objectColorLoc, sceneObjects[sphereObjectIndex].color.r, sceneObjects[sphereObjectIndex].color.g, sceneObjects[sphereObjectIndex].color.b);
+		sceneObjects[sphereObjectIndex].Draw(glutils);
 	}
 
 	glPopMatrix();
