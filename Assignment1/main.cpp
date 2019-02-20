@@ -1,10 +1,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define GLFW_DLL
 
+#include <sys/stat.h>
+
 #include <stdio.h>
 #include <cstdlib>
 #include <stdlib.h>
 #include <string>
+#include <set>
 #include <vector>
 #include <map>
 #include <iostream>
@@ -24,7 +27,14 @@
 #include "opengl_utils.h"
 #include "CGobject.h"
 
+#include "dirent.h"
+
 #include "..\Dependencies\OBJ_Loader.h"
+
+void get_files_in_directory(
+	std::set<std::string> &out, //list of file names within directory
+	const std::string &directory //absolute path to the directory
+);
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -50,7 +60,7 @@ glm::mat4 view;
 CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
 
-opengl_utils glutils; 
+opengl_utils glutils;
 
 // timing
 float deltaTime = 0.0f;	// time between current frame and last frame
@@ -143,30 +153,30 @@ void GLFWCALL mouse_button_callback(int button, int action)
 		bool intersectionFound = false;
 		float zIntersection = farclip;
 		vec3 intersectionPoint;
-		
+
 		objl::Mesh mesh;
 
-		for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex ++)
+		for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
 		{
 			for (int meshIndex = 0; meshIndex < sceneObjects[sceneIndex].Meshes.size(); meshIndex++)
 			{
 				// Find intersection with the fragment
-			
+
 				mesh = sceneObjects[sceneIndex].Meshes[meshIndex];
 
 				for (int i = 0; i < mesh.Indices.size(); i += 3) {
 					// Get the points in World co-ord
-				
-					vec4 p1 = sceneObjects[sceneIndex].globalTransform * 
+
+					vec4 p1 = sceneObjects[sceneIndex].globalTransform *
 						vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
 							mesh.Vertices[mesh.Indices[i]].Position.Y,
 							mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
 					vec4 p2 = sceneObjects[sceneIndex].globalTransform *
-						vec4 (mesh.Vertices[mesh.Indices[i + 1]].Position.X,
+						vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
 							mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
 							mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
 					vec4 p3 = sceneObjects[sceneIndex].globalTransform*
-						vec4 (mesh.Vertices[mesh.Indices[i + 2]].Position.X,
+						vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
 							mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
 							mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
 
@@ -189,12 +199,12 @@ void GLFWCALL mouse_button_callback(int button, int action)
 							// distance to intersection on the line:
 							//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
 							auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
-						
+
 							if (t < zIntersection)
 							{
 								// Found a closer intersection point
 								zIntersection = t;
-								intersectionPoint = cameraPos + t * ray_wor; 
+								intersectionPoint = cameraPos + t * ray_wor;
 
 								// Find the closest vertex
 								int indexOfClosestPoint = closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
@@ -258,7 +268,7 @@ bool sameSignVolumes(float a, float b)
 
 bool sameSignVolumes(float a, float b, float c)
 {
-	if (a >= 0 && b >= 0 && c >=0 || a < 0 && b < 0 && c < 0)
+	if (a >= 0 && b >= 0 && c >= 0 || a < 0 && b < 0 && c < 0)
 		return true;
 
 	return false;
@@ -303,7 +313,7 @@ void addToIndexBuffer(Assignment1::CGObject *cg_object)
 {
 	int IBOindex = cg_object->startIBO;
 	for (auto const& mesh : cg_object->Meshes) {
-		glutils.addIBOBufferSubData(IBOindex, mesh.Indices.size(), &mesh.Indices[0]);		
+		glutils.addIBOBufferSubData(IBOindex, mesh.Indices.size(), &mesh.Indices[0]);
 		IBOindex += mesh.Indices.size();
 	}
 }
@@ -326,7 +336,7 @@ std::vector<objl::Mesh> loadMeshes(const char* objFileLocation)
 Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers, bool subjectToGravity, vec3 initTransformVector, vec3 initScaleVector, vec3 color, float coef, CGObject* parent)
 {
 	Assignment1::CGObject object = Assignment1::CGObject();
-	object.Meshes = meshes;	
+	object.Meshes = meshes;
 	object.subjectToGravity = subjectToGravity;
 	object.initialTranslateVector = initTransformVector;
 	object.position = initTransformVector;
@@ -340,7 +350,7 @@ Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers
 
 	if (addToBuffers)
 	{
-		for (auto const& mesh :meshes) {					
+		for (auto const& mesh : meshes) {
 			glutils.generateVertexArray(&(VAOs[numVAOs]));
 			GLuint tmpVAO = VAOs[numVAOs];
 			object.VAOs.push_back(tmpVAO);
@@ -349,7 +359,7 @@ Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers
 			numVAOs++;
 		}
 	}
-	
+
 	return object;
 }
 
@@ -357,23 +367,27 @@ void createObjects()
 {
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
-	
-	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj"; 
+
+	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
 	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   // returns 2
 	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = boyObject;
 	numObjects++;
-	
+
 	const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
 	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
+	// Load blendshapes
+	set<string> fileList;
+	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
+
 	glutils.createVBO(n_vbovertices);
 
 	glutils.createIBO(n_ibovertices);
-	
+
 	addToObjectBuffer(&boyObject);
 	addToObjectBuffer(&cubeObject);
 	addToIndexBuffer(&boyObject);
@@ -387,7 +401,7 @@ void init()
 	glutils = opengl_utils();
 
 	glutils.createShaders();
-	
+
 	glutils.setupUniformVariables();
 
 	createObjects();
@@ -398,13 +412,13 @@ void display()
 	// render
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
+
 	// Rotate model
 	dt = glfwGetTime() - time;
 	if (dt < 0) dt = 0;
 	time += dt;
-	turn += speed*dt;
-	
+	turn += speed * dt;
+
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	glRotated(360.0*turn, 0.4, 1, 0.2);
@@ -438,11 +452,11 @@ void display()
 	glm::mat4 global1 = local1;
 
 	glutils.updateUniformVariables(global1, view, projection);
-		
+
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
-		
+
 	// DRAW objects
 	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
@@ -453,13 +467,13 @@ void display()
 		glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
 		sceneObjects[i].Draw(glutils);
 	}
-	
+
 	glPopMatrix();
 
 	if (vertexSelected)
 	{
 		//glUseProgram(glutils.CircleID);
-		
+
 		/*pointVertex[0] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X;
 		pointVertex[1] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y;
 		pointVertex[2] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z;
@@ -482,8 +496,8 @@ void display()
 		/*glUseProgram(glutils.CircleID);
 
 		glBegin(GL_POINTS);
-		glVertex3f(sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X, 
-			sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y, 
+		glVertex3f(sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
+			sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
 			sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
 
 		glEnd();*/
@@ -499,7 +513,7 @@ void display()
 		glMatrixMode(GL_PROJECTION);
 		glLoadMatrixf(&(projection[0][0]));
 		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(&view[0][0]); 
+		glLoadMatrixf(&view[0][0]);
 
 		glBegin(GL_POINTS);
 		glUniform3f(glutils.objectColorLoc, 1.0f, 0.0f, 0.0f);
@@ -509,15 +523,15 @@ void display()
 			vec4(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
 				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
 				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z, 1.0);
-		
+
 		glVertex3f(cursorPoint.x - 5.0f, cursorPoint.y, cursorPoint.z + 0.02f);
-		
+
 		glEnd();
 		glDisable(GL_POINT_SMOOTH);
 		glBlendFunc(GL_NONE, GL_NONE);
 		glDisable(GL_BLEND);
 	}
-	
+
 	// Draw tweak bars
 	TwDraw();
 
@@ -525,10 +539,10 @@ void display()
 	glfwSwapBuffers();
 }
 
-int main(void) 
+int main(void)
 {
 	GLFWvidmode mode;   // GLFW video mode
-	
+
 	// Initialise GLFW
 	if (!glfwInit())
 	{
@@ -536,7 +550,7 @@ int main(void)
 		getchar();
 		return -1;
 	}
-	
+
 	// Create a window
 	glfwGetDesktopMode(&mode);
 	if (!glfwOpenWindow(SCR_WIDTH, SCR_HEIGHT, mode.RedBits, mode.GreenBits, mode.BlueBits,
@@ -547,31 +561,31 @@ int main(void)
 		glfwTerminate();
 		return 1;
 	}
-	
+
 	glfwEnable(GLFW_MOUSE_CURSOR);
 	glfwEnable(GLFW_KEY_REPEAT);
 	glfwSetWindowTitle("Facial Animation");
 
 	// Initialize AntTweakBar
 	TwInit(TW_OPENGL, NULL);
-	
+
 	// Create a tweak bar
 	bar = TwNewBar("TweakBar");
 
 	// Change the font size, and add a global message to the Help bar.
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
-	
+
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarRO(bar, "time", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
 
 	TwAddVarRO(bar, "selected Scene Object", TW_TYPE_INT32, &selectedSceneObject, " label='Selected scene object' precision=0 help='Index of the selected object.' ");
 
 	TwAddVarRO(bar, "selected Mesh index", TW_TYPE_INT32, &selectedObjectMesh, " label='Selected mesh index' precision=0 help='Index of the selected mesh.' ");
-	
+
 	TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
 
-	TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
-			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
+	TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX,
+		" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
 	TwAddVarRO(bar, "selected - posY", TW_TYPE_FLOAT, &tw_posY,
 		" label='PosY - local' precision=2 help='local Y-coord of the selected vertex.' ");
 	TwAddVarRO(bar, "selected - posZ", TW_TYPE_FLOAT, &tw_posZ,
@@ -598,7 +612,7 @@ int main(void)
 	glfwSetKeyCallback((GLFWkeyfun)TwEventKeyGLFW);
 	// - Directly redirect GLFW char events to AntTweakBar
 	glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
-	
+
 	// Initialize time
 	time = glfwGetTime();
 
@@ -623,9 +637,62 @@ int main(void)
 	glutils.deleteVertexArrays();
 	glutils.deletePrograms();
 	glutils.deleteBuffers();
-	
+
 	TwTerminate();
 	glfwTerminate();
 	return 0;
 }
 
+void get_files_in_directory(
+	std::set<std::string> &out, //list of file names within directory
+	const std::string &directory //absolute path to the directory
+)
+{
+#ifdef _WIN32
+	HANDLE dir;
+	WIN32_FIND_DATA file_data;
+
+	if ((dir = FindFirstFile((directory + "/*").c_str(), &file_data)) == INVALID_HANDLE_VALUE)
+		return; /* No files found */
+
+	do {
+		const std::string file_name = file_data.cFileName;
+		//const std::string full_file_name = directory + "/" + file_name;
+		const bool is_directory = (file_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+
+		if (file_name[0] == '.')
+			continue;
+
+		if (is_directory)
+			continue;
+
+		out.insert(file_name);
+	} while (FindNextFile(dir, &file_data));
+
+	FindClose(dir);
+#else
+	DIR *dir;
+	class dirent *ent;
+	class stat st;
+
+	dir = opendir(directory.c_str());
+	while ((ent = readdir(dir)) != NULL) {
+		const std::string file_name = ent->d_name;
+		const std::string full_file_name = directory + "/" + file_name;
+
+		if (file_name[0] == '.')
+			continue;
+
+		if (stat(full_file_name.c_str(), &st) == -1)
+			continue;
+
+		const bool is_directory = (st.st_mode & S_IFDIR) != 0;
+
+		if (is_directory)
+			continue;
+
+		out.insert(file_name);
+	}
+	closedir(dir);
+#endif
+}

@@ -88,7 +88,13 @@ GLfloat pointVertex[6];
 //lighting position
 glm::vec3 lightPos(1.0f, 3.0f, 1.0f);
 
-bool isRotationQuaternion = true;  // false - means Euler
+enum rotationEnum
+{
+	Euler = 1,
+	Quaternion = 2
+};
+
+rotationEnum rotationType = rotationEnum::Euler;
 
 unsigned int textureID;
 
@@ -99,7 +105,35 @@ enum viewEnum
 	thirdPerson = 3
 };
 
-viewEnum viewControl = viewEnum::thirdPerson;
+viewEnum viewControl = viewEnum::normalView;
+
+void TW_CALL ResetCallback(void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+
+	selectedObject->eulerAngles.x = 0.0f;
+	selectedObject->eulerAngles.y = 0.0f;
+	selectedObject->eulerAngles.z = 0.0f;
+	selectedObject->previousEulerAngles.x = 0.0f;
+	selectedObject->previousEulerAngles.y = 0.0f;
+	selectedObject->previousEulerAngles.z = 0.0f;
+
+	selectedObject->previousRotationMatrix = glm::mat4(1.0f);
+}
+
+void TW_CALL GimbalLockCallback(void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+	selectedObject->eulerAngles.x = 0.0f;
+	selectedObject->eulerAngles.z = 1.57f;
+	selectedObject->eulerAngles.y = 0.0f;
+	selectedObject->previousEulerAngles.x = 0.0f;
+	selectedObject->previousEulerAngles.x = 0.0f;
+	selectedObject->previousEulerAngles.x = 0.0f;
+
+	selectedObject->previousRotationMatrix = glm::mat4(1.0f);
+	
+}
 
 void TW_CALL SetCallbackLocalRoll(const void *value, void *clientData)
 {
@@ -479,30 +513,24 @@ void display()
 
 	glm::mat4 view;
 
-	if (viewControl == viewEnum::firstPerson)
+	if (viewControl == viewEnum::firstPerson || viewControl == viewEnum::thirdPerson)
 	{
 		// Get plane rotation
 		vec4 cameraFrontFirst = vec4(-1.0f, 0.0f, 0.0f, 0.0f);
 		vec4 cameraUpFirst = vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		vec4 cameraDisplacement = vec4(0.0f, 0.7f, 0.0f, 0.0f);
+		vec4 cameraDisplacement;
 		
+		if (viewControl == viewEnum::firstPerson)
+		{
+			cameraDisplacement = vec4(0.0f, 0.7f, 0.0f, 0.0f);
+		}
+		else
+		{
+			cameraDisplacement = vec4(8.0f, 2.0f, 0.0f, 0.0f);
+		}
+
 		cameraFrontFirst = sceneObjects[1].previousRotationMatrix * cameraFrontFirst;
 		cameraUpFirst =  sceneObjects[1].previousRotationMatrix * cameraUpFirst;  //rotate(quat(sceneObjects[i].previousEulerAngles), vec4(cameraUpFirst, 0.0f));
-		cameraDisplacement = sceneObjects[1].previousRotationMatrix * cameraDisplacement;
-
-		vec4 firstPersonCameraPosition = vec4(sceneObjects[1].position.x + cameraDisplacement.x, sceneObjects[1].position.y + cameraDisplacement.y, sceneObjects[1].position.z + cameraDisplacement.z, 1.0);
-		view = glm::lookAt(vec3(firstPersonCameraPosition), vec3(firstPersonCameraPosition + cameraFrontFirst), vec3(cameraUpFirst));
-
-	}
-	else if (viewControl == viewEnum::thirdPerson)
-	{
-		// Get plane rotation
-		vec4 cameraFrontFirst = vec4(-1.0f, 0.0f, 0.0f, 0.0f);
-		vec4 cameraUpFirst = vec4(0.0f, 1.0f, 0.0f, 0.0f);
-		vec4 cameraDisplacement = vec4(6.0f, 2.0f, 0.0f, 0.0f);
-
-		cameraFrontFirst = sceneObjects[1].previousRotationMatrix * cameraFrontFirst;
-		cameraUpFirst = sceneObjects[1].previousRotationMatrix * cameraUpFirst;  //rotate(quat(sceneObjects[i].previousEulerAngles), vec4(cameraUpFirst, 0.0f));
 		cameraDisplacement = sceneObjects[1].previousRotationMatrix * cameraDisplacement;
 
 		vec4 firstPersonCameraPosition = vec4(sceneObjects[1].position.x + cameraDisplacement.x, sceneObjects[1].position.y + cameraDisplacement.y, sceneObjects[1].position.z + cameraDisplacement.z, 1.0);
@@ -534,33 +562,23 @@ void display()
 
 	glPopMatrix();
 
-	glPushMatrix();
-
-	glLoadIdentity();
-
-	// activate shader
-	glUseProgram(glutils.SimpleShaderID);
-
-	int pass, numPass;
-
-	// Enable OpenGL transparency and light (could have been done once at init)
-	//glEnable(GL_BLEND);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);	
-
 	glm::mat4 local1(1.0f);
 	//local1 = glm::translate(local1, cameraPos);
 	glm::mat4 global1 = local1;
+	
+	//// activate shader
+	//glUseProgram(glutils.SimpleShaderID);
+	//	
+	//glPushMatrix();
+	//glLoadIdentity();
 
-	glPushMatrix();
-	glLoadIdentity();
+	//glutils.updateUniformVariablesSimple(global1,
+	//	view,
+	//	projection);
 
-	glutils.updateUniformVariablesSimple(global1,
-		view,
-		projection);
+	//drawCoordinateLines();
 
-	drawCoordinateLines();
-
-	glPopMatrix();
+	//glPopMatrix();
 
 	glPushMatrix();
 	glLoadIdentity();
@@ -583,7 +601,7 @@ void display()
 	// DRAW objects
 	for (int i = 1; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
-		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(isRotationQuaternion);
+		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(rotationType == rotationEnum::Quaternion ? true : false);
 		glutils.updateUniformVariables(globalCGObjectTransform);
 		
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
@@ -632,13 +650,13 @@ int main(void)
 	glfwEnable(GLFW_MOUSE_CURSOR);
 	glfwEnable(GLFW_STICKY_KEYS);
 	glfwEnable(GLFW_KEY_REPEAT);
-	glfwSetWindowTitle("Geometrical Transformations");
+	glfwSetWindowTitle("Assignment 2. Plane rotations");
 
 	// Initialize AntTweakBar
 	TwInit(TW_OPENGL, NULL);
 
 	// Create a tweak bar
-	bar = TwNewBar("TweakBar");
+	bar = TwNewBar("Plane settings:");
 
 	// Change the font size, and add a global message to the Help bar.
 	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
@@ -655,17 +673,28 @@ int main(void)
 	//TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX, 
 //			" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
 
+	TwEnumVal rotationEnumTW[] = {{rotationEnum::Euler, "Euler Angles"},
+								{rotationEnum::Quaternion, "Quaternion"}};
+
+	TwType rotationTwType = TwDefineEnum("RotateEnum", rotationEnumTW, 2);
+
+	// Link it to the tweak bar
+	TwAddVarRW(bar, "Rotation Type", rotationTwType, &rotationType, NULL);
+
 	// Array of drop down items
-	TwEnumVal viewEnum[] = { {viewEnum::firstPerson, "First Person"}, 
+	TwEnumVal viewEnumTW[] = { {viewEnum::firstPerson, "First Person"}, 
 								{viewEnum::thirdPerson, "Third Person"}, 
 								{viewEnum::normalView, "Normal View"} };
 
 	// ATB identifier for the array
-	TwType MeshTwType = TwDefineEnum("ViewEnum", viewEnum, 3);
+	TwType viewTwType = TwDefineEnum("ViewEnum", viewEnumTW, 3);
 
 	// Link it to the tweak bar
-	TwAddVarRW(bar, "ViewControl", MeshTwType, &viewControl, NULL);
+	TwAddVarRW(bar, "View Type", viewTwType, &viewControl, NULL);
 
+	TwAddButton(bar, "ShowGimbal", GimbalLockCallback, &sceneObjects, " label='Show Gimbal' ");
+
+	TwAddButton(bar, "Reset", ResetCallback, &sceneObjects, " label='Reset' ");
 
 	// Set GLFW event callbacks
 	// - Redirect window size changes to the callback function WindowSizeCB

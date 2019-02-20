@@ -17,7 +17,6 @@ namespace Assignment2
 		for (int i = 0; i < this->Meshes.size(); i++) {
 
 			glutils.linkCurrentBuffertoShader(this->VAOs[i], VBOindex, IBOindex);
-			//glUniform3f(glutils.objectColorLoc, this->color.r, this->color.g, this->color.b);
 
 			glUniform3f(glutils.objectColorLoc, this->Meshes[i].MeshMaterial.Kd.X, this->Meshes[i].MeshMaterial.Kd.Y, this->Meshes[i].MeshMaterial.Kd.Z);
 
@@ -97,12 +96,15 @@ namespace Assignment2
 		}
 		else
 		{
-			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
-			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
-			rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
 
-			//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.x, this->eulerAngles.z);
-			//rotationMatrix = glm::eulerAngleXYZ(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+			rotationMatrix = glm::eulerAngleYZX(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+
+			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			this->previousRotationMatrix = glm::mat4(rotationMatrix);
 		}
 
 		localTransform = localTransform * rotationMatrix;

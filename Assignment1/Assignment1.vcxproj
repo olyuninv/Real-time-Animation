@@ -140,6 +140,7 @@
   <ItemGroup>
     <ClInclude Include="..\Dependencies\OBJ_Loader.h" />
     <ClInclude Include="CGObject.h" />
+    <ClInclude Include="dirent.h" />
     <ClInclude Include="opengl_utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
