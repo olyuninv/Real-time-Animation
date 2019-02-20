@@ -320,7 +320,7 @@ void addToIndexBuffer(Assignment1::CGObject *cg_object)
 
 //---------------------------------------------------------------------------------------------------------//
 
-std::vector<objl::Mesh> loadMeshes(const char* objFileLocation)
+std::vector<objl::Mesh> loadMeshes(const string objFileLocation)
 {
 	objl::Loader obj_loader;
 
@@ -368,30 +368,64 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 
+	// Load blendshapes
+	set<string> fileList;
+	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
+
+	for (auto const& filename : fileList) {
+		const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
+		vector<objl::Mesh> cubeMeshes = loadMeshes(fullfileName);  
+		CGObject tmpObject = loadObjObject(cubeMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
+		sceneObjects[numObjects] = tmpObject;
+		numObjects++;
+	}
+
+	/*const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
+	vector<objl::Mesh> testMeshes = loadMeshes(neutralFileName);
+	CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
+	sceneObjects[numObjects] = testObject;
+	numObjects++;*/
+
 	const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
-	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   // returns 2
-	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   
+	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); 
 	sceneObjects[numObjects] = boyObject;
 	numObjects++;
 
 	const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
-	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   // returns 2
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); //choco - vec3(0.4f, 0.2f, 0.0f), 0.65f, NULL);
+	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); 
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
-	// Load blendshapes
-	set<string> fileList;
-	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
+	const char* sphereFileName = "../Assignment1/meshes/Sphere/sphere.obj";
+	vector<objl::Mesh> sphereMeshes = loadMeshes(sphereFileName);
+	CGObject sphereObject = loadObjObject(sphereMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
+	sceneObjects[numObjects] = sphereObject;
+	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
 
 	glutils.createIBO(n_ibovertices);
 
+	for (int i = 0; i < fileList.size(); i++) {
+		addToObjectBuffer(&sceneObjects[i]);
+	}
+
+	//addToObjectBuffer(&testObject);
 	addToObjectBuffer(&boyObject);
 	addToObjectBuffer(&cubeObject);
+	addToObjectBuffer(&sphereObject);
+	
+
+	for (int i = 0; i < fileList.size(); i++) {
+		addToIndexBuffer(&sceneObjects[i]);
+	}
+
+	//addToIndexBuffer(&testObject);
 	addToIndexBuffer(&boyObject);
 	addToIndexBuffer(&cubeObject);
+	addToIndexBuffer(&sphereObject);
 }
 
 void init()
@@ -425,24 +459,21 @@ void display()
 
 	// activate shader
 	glUseProgram(glutils.PhongProgramID);
-
-	int pass, numPass;
-
+		
 	// Enable OpenGL transparency and light (could have been done once at init)
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_LIGHT0);    // use default light diffuse and position
-	glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
-	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-	glEnable(GL_LINE_SMOOTH);
-	glLineWidth(3.0);
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_BLEND);
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	//glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_LIGHT0);    // use default light diffuse and position
+	//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
+	//glEnable(GL_COLOR_MATERIAL);
+	//glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+	//glEnable(GL_LINE_SMOOTH);
+	//glLineWidth(3.0);
+	//glEnable(GL_CULL_FACE);
 	glEnable(GL_LIGHTING);
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	numPass = 2;
-
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	
 	// Update projection 
 	projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), nearclip, farclip);
 	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -458,7 +489,7 @@ void display()
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
 
 	// DRAW objects
-	for (int i = 0; i < numObjects; i++)     // TODO : need to fix this hardcoding
+	for (int i = 25; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
 	{
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
 		glutils.updateUniformVariables(globalCGObjectTransform);
@@ -468,69 +499,23 @@ void display()
 		sceneObjects[i].Draw(glutils);
 	}
 
+	if (vertexSelected) // && selectedSceneObject != )
+	{
+		sceneObjects[numObjects - 1].position = vec3(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
+			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
+			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
+		sceneObjects[numObjects - 1].Parent = &sceneObjects[selectedSceneObject];
+
+		mat4 globalCGObjectTransform = sceneObjects[numObjects - 1].createTransform();  //sphere
+		glutils.updateUniformVariables(globalCGObjectTransform);
+		sceneObjects[numObjects - 1].globalTransform = globalCGObjectTransform; // keep current state		
+
+		glUniform3f(glutils.objectColorLoc, sceneObjects[numObjects - 1].color.r, sceneObjects[numObjects - 1].color.g, sceneObjects[numObjects - 1].color.b);
+		sceneObjects[numObjects - 1].Draw(glutils);
+	}
+
 	glPopMatrix();
 
-	if (vertexSelected)
-	{
-		//glUseProgram(glutils.CircleID);
-
-		/*pointVertex[0] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X;
-		pointVertex[1] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y;
-		pointVertex[2] = (GLfloat)sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z;
-		pointVertex[3] = 1.0f;
-		pointVertex[4] = 0.0f;
-		pointVertex[5] = 0.0f;*/
-
-		//glEnable(GL_POINT_SMOOTH);
-		//glEnableClientState(GL_VERTEX_ARRAY);
-		//glEnableClientState(GL_COLOR_ARRAY);
-		//glPointSize(50);
-		//glColor3f(1, 0, 0);
-		//glVertexPointer(3, GL_FLOAT, 6, &pointVertex[0]);
-		//glColorPointer(3, GL_FLOAT, 6, &pointVertex[3]);
-		//glDrawArrays(GL_POINTS, 0, 1);
-		//glDisableClientState(GL_VERTEX_ARRAY);
-		//glDisableClientState(GL_COLOR_ARRAY);
-		//glDisable(GL_POINT_SMOOTH);
-
-		/*glUseProgram(glutils.CircleID);
-
-		glBegin(GL_POINTS);
-		glVertex3f(sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
-			sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
-			sceneObjects[0].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
-
-		glEnd();*/
-
-		glEnable(GL_ALPHA_TEST);
-		glAlphaFunc(GL_NOTEQUAL, 0);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_POINT_SMOOTH);
-		glPointSize(20.0);
-
-		//glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-		glMatrixMode(GL_PROJECTION);
-		glLoadMatrixf(&(projection[0][0]));
-		glMatrixMode(GL_MODELVIEW);
-		glLoadMatrixf(&view[0][0]);
-
-		glBegin(GL_POINTS);
-		glUniform3f(glutils.objectColorLoc, 1.0f, 0.0f, 0.0f);
-		//glutils.updateUniformVariables(sceneObjects[selectedSceneObject].globalTransform);
-
-		auto cursorPoint = sceneObjects[selectedSceneObject].globalTransform *
-			vec4(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
-				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
-				sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z, 1.0);
-
-		glVertex3f(cursorPoint.x - 5.0f, cursorPoint.y, cursorPoint.z + 0.02f);
-
-		glEnd();
-		glDisable(GL_POINT_SMOOTH);
-		glBlendFunc(GL_NONE, GL_NONE);
-		glDisable(GL_BLEND);
-	}
 
 	// Draw tweak bars
 	TwDraw();

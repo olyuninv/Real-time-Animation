@@ -32,7 +32,7 @@ namespace Assignment1
 
 		// Shaders
 		GLuint PhongProgramID;
-		GLuint CircleID;
+		GLuint SimpleShaderID;
 
 		// Buffers
 		GLuint VBO;
@@ -42,7 +42,11 @@ namespace Assignment1
 		GLint model_mat_location;
 		GLint view_mat_location;
 		GLint proj_mat_location;
+		GLint model_mat_location2;
+		GLint view_mat_location2;
+		GLint proj_mat_location2;
 		GLint objectColorLoc;
+		GLint objectColorLoc2;
 		GLint lightColorLoc;
 		GLint lightPosLoc;
 		GLint viewPosLoc;
@@ -142,7 +146,7 @@ namespace Assignment1
 		{
 			// Create and compile our shaders
 			PhongProgramID = LoadShaders("../Assignment1/shaders/phong.vs", "../Assignment1/shaders/phong.fs");	
-			CircleID = LoadShaders("../Assignment1/shaders/circle.vs", "../Assignment1/shaders/circle.fs");
+			SimpleShaderID = LoadShaders("../Assignment1/shaders/simpleShader.vs", "../Assignment1/shaders/circle.fs");
 		}
 
 		void createVBO(int numVertices)
@@ -187,6 +191,11 @@ namespace Assignment1
 			lightColorLoc = glGetUniformLocation(PhongProgramID, "lightColor");
 			lightPosLoc = glGetUniformLocation(PhongProgramID, "lightPos");
 			viewPosLoc = glGetUniformLocation(PhongProgramID, "viewPos");
+			
+			model_mat_location2 = glGetUniformLocation(SimpleShaderID, "model");
+			view_mat_location2 = glGetUniformLocation(SimpleShaderID, "view");
+			proj_mat_location2 = glGetUniformLocation(SimpleShaderID, "proj");
+			objectColorLoc2 = glGetUniformLocation(SimpleShaderID, "objectColor");
 		}
 
 		void getAttributeLocations()
@@ -194,6 +203,8 @@ namespace Assignment1
 			loc1 = glGetAttribLocation(PhongProgramID, "position");
 			loc2 = glGetAttribLocation(PhongProgramID, "normal");
 			loc3 = glGetAttribLocation(PhongProgramID, "texture");
+
+			//loc4 = glGetAttribLocation(SimpleShaderID, "position");
 		}
 
 		void bindVertexAttribute(int location, int locationSize, int startVBO, int offsetVBO)
@@ -209,7 +220,7 @@ namespace Assignment1
 
 			bindVertexAttribute(loc1, 3, startVBO, 0);
 			bindVertexAttribute(loc2, 3, startVBO, 3);
-			bindVertexAttribute(loc3, 3, startVBO, 6);
+			bindVertexAttribute(loc3, 2, startVBO, 6);
 
 			//IBO
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
@@ -229,6 +240,22 @@ namespace Assignment1
 			glUniformMatrix4fv(proj_mat_location, 1, GL_FALSE, &persp_proj[0][0]);
 			glUniformMatrix4fv(view_mat_location, 1, GL_FALSE, &view[0][0]);
 			updateUniformVariables(model);
+		}
+		
+		void updateUniformVariablesSimple(glm::mat4 model)
+		{
+			glUniformMatrix4fv(model_mat_location2, 1, GL_FALSE, &model[0][0]);
+
+			//mat4 normalsTransform = transpose(inverse(model));
+			//glUniformMatrix4fv(normals_location, 1, GL_FALSE, normalsTransform.m);
+			//glUniformMatrix4fv(worldNormal, 1, GL_FALSE, normalsTransform.m);
+		}
+
+		void updateUniformVariablesSimple(glm::mat4 model, glm::mat4 view, glm::mat4 persp_proj)
+		{
+			glUniformMatrix4fv(proj_mat_location2, 1, GL_FALSE, &persp_proj[0][0]);
+			glUniformMatrix4fv(view_mat_location2, 1, GL_FALSE, &view[0][0]);
+			updateUniformVariablesSimple(model);
 		}
 
 		void deleteVertexArrays()
