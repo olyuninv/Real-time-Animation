@@ -37,6 +37,8 @@ namespace Assignment1
 		// Buffers
 		GLuint VBO;
 		GLuint IBO;
+		GLuint faceVBO;
+		GLuint faceIBO;
 
 		// Uniform locations
 		GLint model_mat_location;

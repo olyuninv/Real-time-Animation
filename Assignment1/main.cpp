@@ -93,6 +93,8 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 3.0f, 0.0f);
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
 
+GLuint faceVAO;
+
 int n_vbovertices = 0;
 int n_ibovertices = 0;
 
@@ -398,11 +400,22 @@ void createObjects()
 		numBlendshapes++;
 	}
 
+	// ADD face into separate buffer
 	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
 	vector<objl::Mesh> testMeshes = loadMeshes(neutralFileName);
-	CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
-	sceneObjects[numObjects] = testObject;
-	numObjects++;
+
+	glBindVertexArray(faceVAO);
+	//addToFaceBuffer();
+	glGenBuffers(1, &glutils.faceIBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.faceIBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, testMeshes[0].Indices.size() * 3 * sizeof(unsigned int), &testMeshes[0].Indices, GL_STATIC_DRAW);
+
+	//linkFaceBuffertoShader();
+
+
+	//CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
+	//sceneObjects[numObjects] = testObject;
+	//numObjects++;
 
 	/*const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
 	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   
@@ -460,6 +473,11 @@ void init()
 	createObjects();
 }
 
+void drawFace()
+{
+
+}
+
 void display()
 {
 	// render
@@ -472,9 +490,10 @@ void display()
 	time += dt;
 	turn += speed * dt;
 
-	glMatrixMode(GL_MODELVIEW);
+	//glMatrixMode(GL_MODELVIEW);
+
+	glPushMatrix();
 	glLoadIdentity();
-	glRotated(360.0*turn, 0.4, 1, 0.2);
 
 	// activate shader
 	glUseProgram(glutils.PhongProgramID);
@@ -517,6 +536,23 @@ void display()
 		glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
 		sceneObjects[i].Draw(glutils);
 	}
+
+	glPopMatrix();
+	
+	// DRAW FACE
+	//	glUseProgram(flagID);
+	glPushMatrix();
+	glLoadIdentity();
+
+	//glm::mat4 flagLocation = glm::mat4(1.0f);
+	//updateUniformVariables(glm::translate(flagLocation, vec3(-5.0f, 3.5f, 5.0f)), view, projection);
+	drawFace();
+
+	glPopMatrix();
+
+	// DRAW CONSTRAINTS
+	glPushMatrix();
+	glLoadIdentity();
 
 	if (vertexSelected && selectedSceneObject != sphereObjectIndex)
 	{
