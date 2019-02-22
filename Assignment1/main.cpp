@@ -31,17 +31,23 @@
 
 #include "..\Dependencies\OBJ_Loader.h"
 #include "Blendshape.h"
+#include "Face.h"
 
 void get_files_in_directory(
 	std::set<std::string> &out, //list of file names within directory
 	const std::string &directory //absolute path to the directory
 );
 
+bool read_obj(const std::string& filename,
+	std::vector<glm::vec3> &positions,
+	std::vector<glm::vec2> &tex_coords,
+	std::vector<glm::vec3> &normals,
+	std::vector<std::vector<int>> &indices);
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 30
 #define MAX_MARKERS 50
-#define MAX_BLENDSHAPES 50
+#define MAX_FACES 50
 
 using namespace glm;
 using namespace std;
@@ -63,7 +69,7 @@ glm::mat4 view;
 CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
 
-float* blendshapes[MAX_BLENDSHAPES];
+Face blendshapes[MAX_FACES];
 int numBlendshapes = 0;
 
 vector<CGObject> constraintObjects;
@@ -93,7 +99,8 @@ glm::vec3 cameraUp = glm::vec3(0.0f, 3.0f, 0.0f);
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
 
-GLuint faceVAO;
+GLuint faceVAO_positions;
+GLuint faceVAO_normals;
 
 int n_vbovertices = 0;
 int n_ibovertices = 0;
@@ -122,6 +129,9 @@ float signedVolume(vec3 a, vec3 b, vec3 c, vec3 d);
 bool sameSignVolumes(float vol1, float vol2);
 bool sameSignVolumes(float vol1, float vol2, float vol3);
 int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3);
+
+Face neutralFace;
+Face customFace;
 
 // Callback function called by GLFW when window size changes
 void GLFWCALL WindowSizeCB(int width, int height)
@@ -267,6 +277,25 @@ void GLFWCALL mouse_button_callback(int button, int action)
 	}
 }
 
+void GLFWCALL key_callback(int button, int action)
+{
+	if (!TwEventKeyGLFW(button, action))   // Send event to AntTweakBar
+	{
+		if (256 == button && action == GLFW_PRESS)
+			glfwCloseWindow();
+
+		float cameraSpeed = 2.5 * dt;
+		if (87 == button && action == GLFW_PRESS)
+			cameraPos += cameraSpeed * cameraFront;
+		if (83 == button && action == GLFW_PRESS)
+			cameraPos -= cameraSpeed * cameraFront;
+		if (65 == button && action == GLFW_PRESS)
+			cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+		if (68 == button && action == GLFW_PRESS)
+			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	}
+}
+
 float signedVolume(vec3 a, vec3 b, vec3 c, vec3 d)
 {
 	return (1.0f / 6.0f)*dot(cross(b - a, c - a), d - a);
@@ -383,49 +412,114 @@ void createObjects()
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 
+	// Add neutral face
+	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
+	vector<objl::Mesh> neutralMesh = loadMeshes(neutralFileName);
+
+	float* neutral_positions;
+	float* neutral_normals;
+	float* neutral_texcoords;
+	Face::getPositionsAndNormalsFromObjl(neutralMesh[0].Vertices, 
+						neutral_positions, 
+						neutral_normals, 
+						neutral_texcoords);
+
+	neutralFace = Face (neutralMesh[0].Vertices.size(),
+						neutral_positions,
+						neutral_normals,
+						neutral_texcoords);
+	neutralFace.name = "neutral.obj";
+	neutralFace.indices = neutralMesh[0].Indices;
+	
+	// Generate the only face to be displayed - from neutral for now
+	customFace = Face(neutralMesh[0].Vertices.size(),
+						neutral_positions,
+						neutral_normals,
+						neutral_texcoords);
+	customFace.name = "Custom";
+	customFace.indices = neutralMesh[0].Indices;
+	
 	// Load blendshapes
 	set<string> fileList;
 	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
-
-	// Load blendshapes
+	
 	for (auto const& filename : fileList) {
-		const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
-		vector<objl::Mesh> cubeMeshes = loadMeshes(fullfileName);  
-		float* blendshape1 = blendshape::createBlendshape(cubeMeshes[0].Vertices);
-		blendshapes[numBlendshapes] = blendshape1;
+		if (filename != "neutral.obj")
+		{
+			const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
+			vector<objl::Mesh> faceMeshes = loadMeshes(fullfileName);
+			float* positions;
+			float* normals;
+			float* texcoords;
+			Face::getPositionsAndNormalsFromObjl(faceMeshes[0].Vertices, positions, normals, texcoords);
+			Face face1 = Face(faceMeshes[0].Vertices.size(), positions, normals, texcoords);
+			face1.name = filename;
+			face1.indices = faceMeshes[0].Indices;
 
-		//float a = blendshapes[numBlendshapes][0];
-		//float b = blendshapes[numBlendshapes][2000];
-
-		numBlendshapes++;
+			blendshapes[numBlendshapes] = face1;
+			numBlendshapes++;
+		}
 	}
+	
+	//std::vector<vec3> positions; //vertex positions
+	//std::vector<vec2> tex_coords;   //texture coordinates
+	//std::vector<vec3> normals;  //normals 
+	//std::vector<std::vector<int>> indices; //connectivity
 
-	// ADD face into separate buffer
-	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
-	vector<objl::Mesh> testMeshes = loadMeshes(neutralFileName);
+	//bool read = read_obj(neutralFileName, positions, tex_coords, normals, indices);
 
-	glBindVertexArray(faceVAO);
-	//addToFaceBuffer();
+	//glGenVertexArrays(1, &faceVAO_normals);
+	glGenVertexArrays(1, &faceVAO_positions);
+
+	// The VBO containing the face positions
+	glBindVertexArray(faceVAO_positions);
+
+	glGenBuffers(1, &glutils.faceVBO_positions);
+	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_positions);
+	glBufferData(GL_ARRAY_BUFFER,
+		neutralFace.numVertices * 3 * sizeof(float),
+		neutralFace.vpositions,
+		GL_STREAM_DRAW);
+
+	// The VBO containing the face normals
+	//glBindVertexArray(faceVAO_normals);
+	glGenBuffers(1, &glutils.faceVBO_normals);
+	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
+	glBufferData(GL_ARRAY_BUFFER,
+		neutralFace.numVertices * 3 * sizeof(float),
+		neutralFace.vnormals,
+		GL_STREAM_DRAW);
+
+	//// The VBO containing the face normals
+	//glGenBuffers(1, &glutils.faceVBO_texcoord);
+	//glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_texcoord);
+	//glBufferData(GL_ARRAY_BUFFER,
+	//	faces[numBlendshapes - 1].numVertices * 2 * sizeof(float),
+	//	faces[numBlendshapes - 1].vtexcoord,
+	//	GL_STATIC_DRAW);
+
 	glGenBuffers(1, &glutils.faceIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.faceIBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, testMeshes[0].Indices.size() * 3 * sizeof(unsigned int), &testMeshes[0].Indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+		neutralFace.indices.size() * 3 * sizeof(unsigned int),
+		&neutralFace.indices[0],
+		GL_STATIC_DRAW);
 
-	//linkFaceBuffertoShader();
-
+	glutils.linkFaceBuffertoShader(faceVAO_positions, faceVAO_normals);
 
 	//CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	//sceneObjects[numObjects] = testObject;
 	//numObjects++;
 
 	/*const char* boyFileName = "../Assignment1/meshes/Head/male head.obj";
-	vector<objl::Mesh> meshes = loadMeshes(boyFileName);   
-	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); 
+	vector<objl::Mesh> meshes = loadMeshes(boyFileName);
+	CGObject boyObject = loadObjObject(meshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.15f, 0.15f, 0.15f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = boyObject;
 	numObjects++;*/
 
-	const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
-	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);   
-	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL); 
+	/*const char* cubeFileName = "../Assignment1/meshes/Cube/cube.obj";
+	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);
+	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
@@ -434,30 +528,30 @@ void createObjects()
 	CGObject sphereObject = loadObjObject(sphereMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = sphereObject;
 	sphereObjectIndex = numObjects;
-	numObjects++;
+	numObjects++;*/
 
-	glutils.createVBO(n_vbovertices);
+	/*glutils.createVBO(n_vbovertices);
 
-	glutils.createIBO(n_ibovertices);
+	glutils.createIBO(n_ibovertices);*/
 
 	/*for (int i = 0; i < fileList.size(); i++) {
 		addToObjectBuffer(&sceneObjects[i]);
 	}*/
 
-	addToObjectBuffer(&testObject);
+	//addToObjectBuffer(&testObject);
 	//addToObjectBuffer(&boyObject);
-	addToObjectBuffer(&cubeObject);
-	addToObjectBuffer(&sphereObject);
-	
+	/*addToObjectBuffer(&cubeObject);
+	addToObjectBuffer(&sphereObject);*/
+
 
 	/*for (int i = 0; i < fileList.size(); i++) {
 		addToIndexBuffer(&sceneObjects[i]);
 	}*/
 
-	addToIndexBuffer(&testObject);
+	//addToIndexBuffer(&testObject);
 	//addToIndexBuffer(&boyObject);
-	addToIndexBuffer(&cubeObject);
-	addToIndexBuffer(&sphereObject);
+	//addToIndexBuffer(&cubeObject);
+	//addToIndexBuffer(&sphereObject);
 }
 
 void init()
@@ -497,7 +591,7 @@ void display()
 
 	// activate shader
 	glUseProgram(glutils.PhongProgramID);
-		
+
 	// Enable OpenGL transparency and light (could have been done once at init)
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -511,7 +605,7 @@ void display()
 	//glEnable(GL_CULL_FACE);
 	glEnable(GL_LIGHTING);
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	
+
 	// Update projection 
 	projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), nearclip, farclip);
 	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -526,27 +620,40 @@ void display()
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
 
-	// DRAW objects
-	for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
-	{
-		mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
-		glutils.updateUniformVariables(globalCGObjectTransform);
-		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
+	//// DRAW objects
+	//for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
+	//{
+	//	mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
+	//	glutils.updateUniformVariables(globalCGObjectTransform);
+	//	sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
 
-		glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
-		sceneObjects[i].Draw(glutils);
-	}
+	//	glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
+	//	sceneObjects[i].Draw(glutils);
+	//}
 
-	glPopMatrix();
-	
+	/*glDisableVertexAttribArray(glutils.loc1);
+	glDisableVertexAttribArray(glutils.loc2);
+	glDisableVertexAttribArray(glutils.loc3);*/
+
 	// DRAW FACE
 	//	glUseProgram(flagID);
-	glPushMatrix();
-	glLoadIdentity();
 
-	//glm::mat4 flagLocation = glm::mat4(1.0f);
-	//updateUniformVariables(glm::translate(flagLocation, vec3(-5.0f, 3.5f, 5.0f)), view, projection);
-	drawFace();
+
+	// TODO: recalculate vertices and re-generate buffers
+	glutils.linkFaceBuffertoShader(faceVAO_positions, faceVAO_normals);
+
+	glm::mat4 faceTransform = glm::mat4(1);
+	faceTransform = glm::translate(faceTransform, vec3(0.0f, -3.0f, 0.0f));
+	//faceTransform = glm::rotate(faceTransform, 2.0f, vec3(0.0f, 1.0f, 0.0f));
+	glutils.updateUniformVariables(glm::scale(faceTransform, vec3(0.2f, 0.2f, 0.2f)), view, projection);
+	glUniform3f(glutils.objectColorLoc, 1.0f, 1.0f, 1.0f);
+	glDrawElements(GL_TRIANGLES, customFace.indices.size(), GL_UNSIGNED_INT, 0);
+
+	//drawFace();
+
+	/*glDisableVertexAttribArray(glutils.loc1);
+	glDisableVertexAttribArray(glutils.loc2);
+	glDisableVertexAttribArray(glutils.loc3);*/
 
 	glPopMatrix();
 
@@ -563,11 +670,11 @@ void display()
 
 		// perform scaling opposite to parent
 		sceneObjects[sphereObjectIndex].initialScaleVector = vec3(0.4f / sceneObjects[selectedSceneObject].initialScaleVector.x,
-														0.4f / sceneObjects[selectedSceneObject].initialScaleVector.y,
-														0.4f / sceneObjects[selectedSceneObject].initialScaleVector.z);
+			0.4f / sceneObjects[selectedSceneObject].initialScaleVector.y,
+			0.4f / sceneObjects[selectedSceneObject].initialScaleVector.z);
 
 		mat4 globalCGObjectTransform = sceneObjects[sphereObjectIndex].createTransform();  //sphere
-				
+
 		glutils.updateUniformVariables(globalCGObjectTransform);
 		//sceneObjects[sphereObjectIndex].globalTransform = globalCGObjectTransform; // keep current state		
 
@@ -655,7 +762,7 @@ int main(void)
 	// - Directly redirect GLFW mouse wheel events to AntTweakBar
 	glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
 	// - Directly redirect GLFW key events to AntTweakBar
-	glfwSetKeyCallback((GLFWkeyfun)TwEventKeyGLFW);
+	glfwSetKeyCallback(key_callback);
 	// - Directly redirect GLFW char events to AntTweakBar
 	glfwSetCharCallback((GLFWcharfun)TwEventCharGLFW);
 
@@ -679,16 +786,21 @@ int main(void)
 		display();
 	}
 
+	// delete blendshapes
+	delete[] neutralFace.vpositions;
+	delete[] neutralFace.vnormals;
+	delete[] neutralFace.vtexcoord;
+
+	for (auto face : blendshapes) {
+		delete[] face.vpositions;
+		delete[] face.vnormals;
+		delete[] face.vtexcoord;
+	}
+
 	// optional: de-allocate all resources once they've outlived their purpose:	
 	glutils.deleteVertexArrays();
 	glutils.deletePrograms();
 	glutils.deleteBuffers();
-
-	// delete blendshapes
-	for (auto bl : blendshapes) {
-		delete[] bl;
-		bl = nullptr;
-	}
 
 	TwTerminate();
 	glfwTerminate();
@@ -747,4 +859,140 @@ void get_files_in_directory(
 	}
 	closedir(dir);
 #endif
+}
+
+bool read_obj(const std::string& filename,
+	std::vector<vec3> &positions,
+	std::vector<vec2> &tex_coords,
+	std::vector<vec3> &normals,
+	std::vector<std::vector<int>> &indices)
+{
+	char   s[200];
+	float  x, y, z;
+	//std::vector<vec3> positions; //vertex positions
+	//std::vector<vec2> tex_coords;   //texture coordinates
+	//std::vector<vec3> normals;  //normals 
+	//std::vector<std::vector<int>> indices; //connectivity
+
+	// open file (in ASCII mode)
+	FILE* in = fopen(filename.c_str(), "r");
+	if (!in) return false;
+
+
+	// clear line once
+	memset(&s, 0, 200);
+
+
+	// parse line by line (currently only supports vertex positions & faces
+	while (in && !feof(in) && fgets(s, 200, in))
+	{
+		// comment
+		if (s[0] == '#' || isspace(s[0])) continue;
+
+		// vertex
+		else if (strncmp(s, "v ", 2) == 0)
+		{
+			if (sscanf(s, "v %f %f %f", &x, &y, &z))
+			{
+				positions.push_back(vec3(x, y, z));
+			}
+		}
+		// normal
+		else if (strncmp(s, "vn ", 3) == 0)
+		{
+			if (sscanf(s, "vn %f %f %f", &x, &y, &z))
+			{
+				normals.push_back(vec3(x, y, z));
+			}
+		}
+
+		// texture coordinate
+		else if (strncmp(s, "vt ", 3) == 0)
+		{
+			if (sscanf(s, "vt %f %f", &x, &y))
+			{
+				tex_coords.push_back(vec2(x, y));
+			}
+		}
+
+		// face
+		else if (strncmp(s, "f ", 2) == 0)
+		{
+			int component(0), nV(0);
+			bool endOfVertex(false);
+			char *p0, *p1(s + 1);
+
+			std::vector<int> polygon;
+
+			// skip white-spaces
+			while (*p1 == ' ') ++p1;
+
+			while (p1)
+			{
+				p0 = p1;
+
+				// overwrite next separator
+
+				// skip '/', '\n', ' ', '\0', '\r' <-- don't forget Windows
+				while (*p1 != '/' && *p1 != '\r' && *p1 != '\n' && *p1 != ' ' && *p1 != '\0') ++p1;
+
+				// detect end of vertex
+				if (*p1 != '/')
+				{
+					endOfVertex = true;
+				}
+
+				// replace separator by '\0'
+				if (*p1 != '\0')
+				{
+					*p1 = '\0';
+					p1++; // point to next token
+				}
+
+				// detect end of line and break
+				if (*p1 == '\0' || *p1 == '\n')
+				{
+					p1 = 0;
+				}
+
+				// read next vertex component
+				if (*p0 != '\0')
+				{
+					switch (component)
+					{
+					case 0: // vertex
+					{
+						polygon.push_back(atoi(p0) - 1);
+						break;
+					}
+					case 1: // texture coord
+					{
+						//add code for saving texture coordinate index
+						break;
+					}
+					case 2: // normal
+					  //add code for saving normal coordinate index
+						break;
+					}
+				}
+
+				++component;
+
+				if (endOfVertex)
+				{
+					component = 0;
+					nV++;
+					endOfVertex = false;
+				}
+			}
+
+			indices.push_back(polygon);
+
+		}
+		// clear line
+		memset(&s, 0, 200);
+	}
+
+	fclose(in);
+	return true;
 }

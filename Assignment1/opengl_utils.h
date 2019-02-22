@@ -37,7 +37,9 @@ namespace Assignment1
 		// Buffers
 		GLuint VBO;
 		GLuint IBO;
-		GLuint faceVBO;
+		GLuint faceVBO_positions;
+		GLuint faceVBO_normals;
+		GLuint faceVBO_texcoord;
 		GLuint faceIBO;
 
 		// Uniform locations
@@ -148,7 +150,7 @@ namespace Assignment1
 		{
 			// Create and compile our shaders
 			PhongProgramID = LoadShaders("../Assignment1/shaders/phong.vs", "../Assignment1/shaders/phong.fs");	
-			SimpleShaderID = LoadShaders("../Assignment1/shaders/simpleShader.vs", "../Assignment1/shaders/circle.fs");
+			//SimpleShaderID = LoadShaders("../Assignment1/shaders/simpleShader.vs", "../Assignment1/shaders/circle.fs");
 		}
 
 		void createVBO(int numVertices)
@@ -204,7 +206,7 @@ namespace Assignment1
 		{
 			loc1 = glGetAttribLocation(PhongProgramID, "position");
 			loc2 = glGetAttribLocation(PhongProgramID, "normal");
-			loc3 = glGetAttribLocation(PhongProgramID, "texture");
+			//loc3 = glGetAttribLocation(PhongProgramID, "texture");
 
 			//loc4 = glGetAttribLocation(SimpleShaderID, "position");
 		}
@@ -214,6 +216,24 @@ namespace Assignment1
 			glEnableVertexAttribArray(location);
 			glBindBuffer(GL_ARRAY_BUFFER, VBO);
 			glVertexAttribPointer(location, locationSize, GL_FLOAT, GL_TRUE, 8 * sizeof(float), (void*)(startVBO * 8 * sizeof(float) + BUFFER_OFFSET(offsetVBO * sizeof(GLfloat))));
+		}
+
+		void linkFaceBuffertoShader(int faceVAO_positions, int faceVAO_normals)
+		{
+			glBindVertexArray(faceVAO_positions);
+			//glBindVertexArray(faceVAO_normals);
+
+			glEnableVertexAttribArray(loc1);
+			glBindBuffer(GL_ARRAY_BUFFER, faceVBO_positions);
+			glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, (void*) 0);
+			
+			glEnableVertexAttribArray(loc2);
+			glBindBuffer(GL_ARRAY_BUFFER, faceVBO_normals);
+			glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_TRUE, 0, (void*) 0); //3 * sizeof(float)
+			
+
+			//IBO
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, faceIBO);
 		}
 
 		void linkCurrentBuffertoShader(GLuint VAOindex, int startVBO, int startIBO)
@@ -270,6 +290,12 @@ namespace Assignment1
 		{
 			glDeleteBuffers(1, &VBO);	
 			glDeleteBuffers(1, &IBO);
+			glDeleteBuffers(1, &faceVBO_positions);
+
+			glDeleteBuffers(1, &faceVBO_normals);
+
+			glDeleteBuffers(1, &faceVBO_texcoord);
+			glDeleteBuffers(1, &faceIBO);
 		}
 
 		void deletePrograms()

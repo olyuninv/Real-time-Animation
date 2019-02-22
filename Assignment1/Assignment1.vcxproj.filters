@@ -10,6 +10,9 @@
     <ClCompile Include="Blendshape.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="Face.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGObject.h">
@@ -25,6 +28,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Blendshape.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="Face.h">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

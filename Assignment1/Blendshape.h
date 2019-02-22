@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include "..\Dependencies\OBJ_Loader.h"
 
 namespace Assignment1
 {
@@ -13,6 +12,6 @@ namespace Assignment1
 
 		~blendshape();
 
-		static float* createBlendshape(std::vector<objl::Vertex>);
+
 	};
 }
