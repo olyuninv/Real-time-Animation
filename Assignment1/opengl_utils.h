@@ -218,10 +218,9 @@ namespace Assignment1
 			glVertexAttribPointer(location, locationSize, GL_FLOAT, GL_TRUE, 8 * sizeof(float), (void*)(startVBO * 8 * sizeof(float) + BUFFER_OFFSET(offsetVBO * sizeof(GLfloat))));
 		}
 
-		void linkFaceBuffertoShader(int faceVAO_positions, int faceVAO_normals)
+		void linkFaceBuffertoShader(int faceVAO_positions)
 		{
 			glBindVertexArray(faceVAO_positions);
-			//glBindVertexArray(faceVAO_normals);
 
 			glEnableVertexAttribArray(loc1);
 			glBindBuffer(GL_ARRAY_BUFFER, faceVBO_positions);

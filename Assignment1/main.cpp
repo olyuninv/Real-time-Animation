@@ -47,7 +47,7 @@ bool read_obj(const std::string& filename,
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 30
 #define MAX_MARKERS 50
-#define MAX_FACES 50
+#define NUM_BLENDSHAPES 24
 
 using namespace glm;
 using namespace std;
@@ -69,7 +69,7 @@ glm::mat4 view;
 CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
 
-Face blendshapes[MAX_FACES];
+Face blendshapes[NUM_BLENDSHAPES];
 int numBlendshapes = 0;
 
 vector<CGObject> constraintObjects;
@@ -100,7 +100,6 @@ GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
 
 GLuint faceVAO_positions;
-GLuint faceVAO_normals;
 
 int n_vbovertices = 0;
 int n_ibovertices = 0;
@@ -132,6 +131,23 @@ int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3);
 
 Face neutralFace;
 Face customFace;
+float* weights = new float[NUM_BLENDSHAPES] {0.0f};
+
+void TW_CALL SetCallbackLocalJawOpen(const void *value, void *clientData)
+{
+	float *selectedWeights = (static_cast<float *>(clientData));
+	selectedWeights[0] = *(const float *)value;
+}
+
+void TW_CALL GetCallbackLocalJawOpen(void *value, void *clientData)
+{
+	float *selectedWeights = (static_cast<float *>(clientData));
+	*static_cast<float *>(value) = selectedWeights[0];
+
+	/*CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+	*static_cast<float *>(value) = selectedObject->eulerAngles.x;*/
+}
+
 
 // Callback function called by GLFW when window size changes
 void GLFWCALL WindowSizeCB(int width, int height)
@@ -431,14 +447,6 @@ void createObjects()
 	neutralFace.name = "neutral.obj";
 	neutralFace.indices = neutralMesh[0].Indices;
 	
-	// Generate the only face to be displayed - from neutral for now
-	customFace = Face(neutralMesh[0].Vertices.size(),
-						neutral_positions,
-						neutral_normals,
-						neutral_texcoords);
-	customFace.name = "Custom";
-	customFace.indices = neutralMesh[0].Indices;
-	
 	// Load blendshapes
 	set<string> fileList;
 	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
@@ -453,6 +461,7 @@ void createObjects()
 			float* texcoords;
 			Face::getPositionsAndNormalsFromObjl(faceMeshes[0].Vertices, positions, normals, texcoords);
 			Face face1 = Face(faceMeshes[0].Vertices.size(), positions, normals, texcoords);
+			face1.calculateDeltaBlendshape(neutralFace.vpositions);
 			face1.name = filename;
 			face1.indices = faceMeshes[0].Indices;
 
@@ -461,14 +470,18 @@ void createObjects()
 		}
 	}
 	
-	//std::vector<vec3> positions; //vertex positions
-	//std::vector<vec2> tex_coords;   //texture coordinates
-	//std::vector<vec3> normals;  //normals 
-	//std::vector<std::vector<int>> indices; //connectivity
+	float* customPositions = blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights);
+	float* customNormals = blendshape::recalculateNormals(neutralFace.numVertices, customPositions);  //TODO: assumption here that indices are in order of vertices
 
-	//bool read = read_obj(neutralFileName, positions, tex_coords, normals, indices);
+	// Generate the only face to be displayed - from neutral for now
+	customFace = Face(neutralMesh[0].Vertices.size(),
+		customPositions,
+		//customNormals,
+		neutral_normals,
+		neutral_texcoords);
+	customFace.name = "Custom";
+	customFace.indices = neutralMesh[0].Indices;
 
-	//glGenVertexArrays(1, &faceVAO_normals);
 	glGenVertexArrays(1, &faceVAO_positions);
 
 	// The VBO containing the face positions
@@ -502,7 +515,7 @@ void createObjects()
 		&neutralFace.indices[0],
 		GL_STATIC_DRAW);
 
-	glutils.linkFaceBuffertoShader(faceVAO_positions, faceVAO_normals);
+	glutils.linkFaceBuffertoShader(faceVAO_positions);
 
 	//CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	//sceneObjects[numObjects] = testObject;
@@ -637,7 +650,7 @@ void display()
 
 
 	// TODO: recalculate vertices and re-generate buffers
-	glutils.linkFaceBuffertoShader(faceVAO_positions, faceVAO_normals);
+	glutils.linkFaceBuffertoShader(faceVAO_positions);
 
 	glm::mat4 faceTransform = glm::mat4(1);
 	faceTransform = glm::translate(faceTransform, vec3(0.0f, -3.0f, 0.0f));
@@ -720,17 +733,17 @@ int main(void)
 	TwInit(TW_OPENGL, NULL);
 
 	// Create a tweak bar
-	bar = TwNewBar("TweakBar");
+	bar = TwNewBar("Blendshapes");
 
 	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" GLOBAL fontSize=3 help='This example illustrates the definition of custom structure type as well as many other features.' ");
+	TwDefine(" GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarRO(bar, "time", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
 
-	TwAddVarRO(bar, "selected Scene Object", TW_TYPE_INT32, &selectedSceneObject, " label='Selected scene object' precision=0 help='Index of the selected object.' ");
+	//TwAddVarRO(bar, "selected Scene Object", TW_TYPE_INT32, &selectedSceneObject, " label='Selected scene object' precision=0 help='Index of the selected object.' ");
 
-	TwAddVarRO(bar, "selected Mesh index", TW_TYPE_INT32, &selectedObjectMesh, " label='Selected mesh index' precision=0 help='Index of the selected mesh.' ");
+	//TwAddVarRO(bar, "selected Mesh index", TW_TYPE_INT32, &selectedObjectMesh, " label='Selected mesh index' precision=0 help='Index of the selected mesh.' ");
 
 	TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
 
@@ -748,6 +761,11 @@ int main(void)
 		" label='PosY - world' precision=2 help='World Y-coord of the selected vertex.' ");
 	TwAddVarRO(bar, "selected - posZ - world", TW_TYPE_FLOAT, &tw_posZ_world,
 		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");
+
+	TwAddSeparator(bar, "", NULL);
+
+	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
+	TwAddVarCB(bar, "JawOpen", TW_TYPE_FLOAT, SetCallbackLocalJawOpen, GetCallbackLocalJawOpen, &weights, " group='Facial Expressions' step=0.05 label='Jaw Open' precision=2 ");
 
 	// Set GLFW event callbacks
 	// - Redirect window size changes to the callback function WindowSizeCB
@@ -792,6 +810,7 @@ int main(void)
 		delete[] face.vpositions;
 		delete[] face.vnormals;
 		delete[] face.vtexcoord;
+		delete[] face.deltaBlendshape;
 	}
 
 	// optional: de-allocate all resources once they've outlived their purpose:	

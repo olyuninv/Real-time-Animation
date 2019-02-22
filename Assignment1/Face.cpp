@@ -53,3 +53,13 @@ void Face::getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices,
 	//array = nullptr;
 
 }
+
+void Face::calculateDeltaBlendshape(float* &neutralPositions)
+{
+	deltaBlendshape = new float[numVertices * 3];
+
+	for (int i = 0; i < this->numVertices * 3; i++)
+	{
+		deltaBlendshape[i] = this->vpositions[i] - neutralPositions[i];
+	}
+}

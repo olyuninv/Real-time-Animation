@@ -19,10 +19,13 @@ public:
 	float * vpositions;   // 3-floats per vertex
 	float * vnormals;	  // 3-floats per vertex
 	float * vtexcoord;    // 2-floats per vertex
+	float * deltaBlendshape;    // 3-floats per vertex
 	std::vector<unsigned int> indices;
 
 	int findIntersectingVertex(glm::vec3 ray_world);  // returns the vertex nearest to ray or -1 if no intersection
 
 	static void getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices, float* &vpositions, float* &vnormals, float* &vtexcoord);
+
+	void calculateDeltaBlendshape(float* &neutralPositions);
 };
 
