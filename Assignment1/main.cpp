@@ -481,8 +481,6 @@ void createObjects()
 		neutralFace.vpositions,
 		GL_STREAM_DRAW);
 
-	// The VBO containing the face normals
-	//glBindVertexArray(faceVAO_normals);
 	glGenBuffers(1, &glutils.faceVBO_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
 	glBufferData(GL_ARRAY_BUFFER,
@@ -490,13 +488,12 @@ void createObjects()
 		neutralFace.vnormals,
 		GL_STREAM_DRAW);
 
-	//// The VBO containing the face normals
-	//glGenBuffers(1, &glutils.faceVBO_texcoord);
-	//glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_texcoord);
-	//glBufferData(GL_ARRAY_BUFFER,
-	//	faces[numBlendshapes - 1].numVertices * 2 * sizeof(float),
-	//	faces[numBlendshapes - 1].vtexcoord,
-	//	GL_STATIC_DRAW);
+	glGenBuffers(1, &glutils.faceVBO_texcoord);
+	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_texcoord);
+	glBufferData(GL_ARRAY_BUFFER,
+		neutralFace.numVertices * 2 * sizeof(float),
+		neutralFace.vtexcoord,
+		GL_STATIC_DRAW);
 
 	glGenBuffers(1, &glutils.faceIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.faceIBO);
