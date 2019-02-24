@@ -41,16 +41,16 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="shaders\phong.fs">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="shaders\phong.vs">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="shaders\circle.fs">
       <Filter>Shaders</Filter>
     </None>
     <None Include="shaders\circle.vs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\Fresnel.fs">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="shaders\Fresnel.vs">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

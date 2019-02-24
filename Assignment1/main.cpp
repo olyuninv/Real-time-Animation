@@ -111,7 +111,7 @@ int n_vbovertices = 0;
 int n_ibovertices = 0;
 
 //lighting position
-glm::vec3 lightPos(10.0f, 10.0f, 3.0f);
+glm::vec3 lightPos(3.0f, 3.0f, 3.0f);
 
 // Selected vertex
 bool vertexSelected = false;
@@ -533,16 +533,17 @@ void createObjects()
 	}
 
 	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
-	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions);
-
 	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float)); 
-	blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions, customNormals);
+	
+	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions);// , customNormals);
+		
+	//blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions, customNormals);
 
 	// Generate the only face to be displayed - from neutral for now
 	customFace = Face(numberOfVertices,
 		customPositions,
 		customNormals,
-	//	neutralFace.vnormals,
+		//neutralFace.vnormals,
 		neutralFace.vtexcoord);
 		
 	customFace.name = "Custom";
@@ -557,28 +558,28 @@ void createObjects()
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_positions);
 	glBufferData(GL_ARRAY_BUFFER,
 		numberOfVertices * 3 * sizeof(float),
-		neutralFace.vpositions,
+		customFace.vpositions,
 		GL_STREAM_DRAW);
 
 	glGenBuffers(1, &glutils.faceVBO_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
 	glBufferData(GL_ARRAY_BUFFER,
 		numberOfVertices * 3 * sizeof(float),
-		neutralFace.vnormals,
+		customFace.vnormals,
 		GL_STREAM_DRAW);
 
 	glGenBuffers(1, &glutils.faceVBO_texcoord);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_texcoord);
 	glBufferData(GL_ARRAY_BUFFER,
 		numberOfVertices * 2 * sizeof(float),
-		neutralFace.vtexcoord,
+		customFace.vtexcoord,
 		GL_STATIC_DRAW);
 
 	glGenBuffers(1, &glutils.faceIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.faceIBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		numberOfIndices * 3 * sizeof(unsigned int),
-		&neutralFace.indices[0],
+		numberOfIndices * sizeof(unsigned int),
+		&customFace.indices[0],
 		GL_STATIC_DRAW);
 
 	glutils.linkFaceBuffertoShader(faceVAO_positions);
@@ -643,76 +644,18 @@ void init()
 	createObjects();
 }
 
-void display()
+void drawFace(glm::mat4 projection, glm::mat4 view)
 {
-	// render
-	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Rotate model
-	dt = glfwGetTime() - time;
-	if (dt < 0) dt = 0;
-	time += dt;
-	turn += speed * dt;
-
-	//glMatrixMode(GL_MODELVIEW);
-
 	glPushMatrix();
 	glLoadIdentity();
 
-	// activate shader
-	glUseProgram(glutils.PhongProgramID);
-
-	// Enable OpenGL transparency and light (could have been done once at init)
-	glEnable(GL_SMOOTH);
-	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	//glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_LIGHT0);    // use default light diffuse and position
-	//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
-	//glEnable(GL_COLOR_MATERIAL);
-	//glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-	//glEnable(GL_LINE_SMOOTH);
-	//glLineWidth(3.0);
-	//glEnable(GL_CULL_FACE);
-	glEnable(GL_LIGHTING);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	// Update projection 
-	projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), nearclip, farclip);
-	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-	glm::mat4 local1(1.0f);
-	local1 = glm::translate(local1, cameraPos);
-	glm::mat4 global1 = local1;
-
-	glutils.updateUniformVariables(global1, view, projection);
-
-	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
-	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
-	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
-
-	//// DRAW objects
-	//for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
-	//{
-	//	mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
-	//	glutils.updateUniformVariables(globalCGObjectTransform);
-	//	sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
-
-	//	glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
-	//	sceneObjects[i].Draw(glutils);
-	//}
-
-	/*glDisableVertexAttribArray(glutils.loc1);
-	glDisableVertexAttribArray(glutils.loc2);
-	glDisableVertexAttribArray(glutils.loc3);*/
-
 	// DRAW FACE
-	
+
 	//if (newWeightsLength != prev_weights_length)
 	//{		
 		blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customFace.vpositions);
-		blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
-				
+		//blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
+
 		//// Generate the only face to be displayed - from neutral for now
 		////tidy up
 		//delete[] customFace.vpositions;
@@ -740,7 +683,7 @@ void display()
 
 		//prev_weights_length = newWeightsLength;
 	//}
-	
+
 	glutils.linkFaceBuffertoShader(faceVAO_positions);
 
 	glm::mat4 faceTransform = glm::mat4(1);
@@ -750,11 +693,72 @@ void display()
 	glUniform3f(glutils.objectColorLoc, 1.0f, 1.0f, 1.0f);
 	glDrawElements(GL_TRIANGLES, customFace.indices.size(), GL_UNSIGNED_INT, 0);
 
+	glDisableVertexAttribArray(glutils.loc1);
+	glDisableVertexAttribArray(glutils.loc2);
+	glDisableVertexAttribArray(glutils.loc3);
+
+	glPopMatrix();
+}
+
+void display()
+{
+	// render
+	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Rotate model
+	dt = glfwGetTime() - time;
+	if (dt < 0) dt = 0;
+	time += dt;
+	turn += speed * dt;
+		
+	// Update projection 
+	projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), nearclip, farclip);
+	view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+	glm::mat4 local1(1.0f);
+	local1 = glm::translate(local1, cameraPos);
+	glm::mat4 global1 = local1;
+
+	glutils.updateUniformVariables(global1, view, projection);
+
+	// activate shader
+	glUseProgram(glutils.PhongProgramID);
+
+	// Enable OpenGL transparency and light (could have been done once at init)
+	glEnable(GL_SMOOTH);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_LIGHT0);    // use default light diffuse and position
+	//glLightModeli(GL_LIGHT_MODEL_TWO_SIDE, 1);
+	//glEnable(GL_COLOR_MATERIAL);
+	//glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+	//glEnable(GL_LINE_SMOOTH);
+	//glLineWidth(3.0);
+	//glEnable(GL_CULL_FACE);
+	glEnable(GL_LIGHTING);
+	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	
+	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
+	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
+	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
+
+	drawFace(projection, view);
+
+	//// DRAW objects
+	//for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
+	//{
+	//	mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
+	//	glutils.updateUniformVariables(globalCGObjectTransform);
+	//	sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
+
+	//	glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
+	//	sceneObjects[i].Draw(glutils);
+	//}
+
 	/*glDisableVertexAttribArray(glutils.loc1);
 	glDisableVertexAttribArray(glutils.loc2);
 	glDisableVertexAttribArray(glutils.loc3);*/
-
-	glPopMatrix();
 
 	// DRAW CONSTRAINTS
 	glPushMatrix();
@@ -824,7 +828,7 @@ int main(void)
 	bar = TwNewBar("Blendshapes");
 
 	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
+	TwDefine(" GLOBAL Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
 	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarRO(bar, "time", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
@@ -934,8 +938,8 @@ int main(void)
 	std::free(neutralFace.vpositions);
 	std::free(neutralFace.vnormals);
 	std::free(neutralFace.vtexcoord);
-	delete[] customFace.vpositions;
-	delete[] customFace.vnormals;
+	std::free(customFace.vpositions);
+	std::free(customFace.vnormals);
 
 	for (auto face : blendshapes) {
 		std::free(face.vpositions);

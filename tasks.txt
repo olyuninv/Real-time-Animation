@@ -1,15 +1,12 @@
 Calculate delta blendshapes - Face property  - DONE
 
-Add Anttweakbar controls  - DONE
+Add Anttweakbar controls  - ?callback
 
-Add weights - DONE
+Add weights
 
-Blendshape model - calculate average face based on blendshapes - DONE
+Blendshape model - calculate average face based on blendshapes
 
-Display by replacing the buffer   - DONE
+Recalculate normals
 
-Recalculate normals - DONE. Is this correct?
+Display by replacing the buffer
 
-Adjust weights
-
-Load high-res model
