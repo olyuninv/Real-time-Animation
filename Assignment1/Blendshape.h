@@ -15,9 +15,9 @@ namespace Assignment1
 
 		~blendshape();
 
-		static float * calculateFace(Face neutralFace, int numBlandshapes, Face * blendshapes, float * weights);
+		static void calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions);
 
-		static float * recalculateNormals(std::vector<unsigned int> indices, int numVertices, float * customPositions);
+		static void recalculateNormals(std::vector<unsigned int> indices, int numVertices, float * customPositions, float* &customNormals);
 
 		static float calculateWeightsLength(int numWeights, float * weights);
 	};

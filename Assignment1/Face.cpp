@@ -32,10 +32,6 @@ void Face::getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices,
 					float* &vnormals, 
 					float* &vtexcoord)
 {
-	vpositions = new float[vertices.size() * 3];
-	vnormals = new float[vertices.size() * 3];
-	vtexcoord = new float[vertices.size() * 2];
-
 	for (int i = 0; i < vertices.size(); i++) {
 		vpositions[i * 3] = vertices[i].Position.X;
 		vpositions[i * 3 + 1] = vertices[i].Position.Y;
@@ -48,15 +44,11 @@ void Face::getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices,
 		vtexcoord[i * 2] = vertices[i].TextureCoordinate.X;
 		vtexcoord[i * 2 + 1] = vertices[i].TextureCoordinate.Y;
 	}
-
-	//delete[] array;
-	//array = nullptr;
-
 }
 
 void Face::calculateDeltaBlendshape(float* &neutralPositions)
 {
-	deltaBlendshape = new float[numVertices * 3];
+	this->deltaBlendshape = (float *)std::malloc(this->numVertices * 3 * sizeof(float));
 
 	for (int i = 0; i < this->numVertices * 3; i++)
 	{

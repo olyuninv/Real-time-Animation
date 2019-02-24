@@ -10,9 +10,8 @@ namespace Assignment1
 	{
 	}
 
-	float * blendshape::calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights)
+	void blendshape::calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions)
 	{
-		float* newPositions = new float[neutralFace.numVertices * 3]{ 0.0f };
 		float newWeightsLength = blendshape::calculateWeightsLength(numBlendshapes, weights);
 
 		float * adjustedWeights = new float[numBlendshapes];
@@ -21,41 +20,61 @@ namespace Assignment1
 			adjustedWeights[j] = weights[j] / newWeightsLength;
 		}
 
-		float neutralWeight = 1.0f / newWeightsLength;
+		//float neutralWeight = 1.0f / newWeightsLength;
+
+		// set to 0
+		for (int i = 0; i < neutralFace.numVertices * 3; i++)
+		{
+			customPositions[i] = 0.0f;
+		}
 
 		for (int i = 0; i < neutralFace.numVertices * 3; i++)
 		{
 			for (int j = 0; j < numBlendshapes; j++)
 			{
-				newPositions[i] += adjustedWeights[j] * blendshapes[j].deltaBlendshape[i];
+				customPositions[i] += adjustedWeights[j] * blendshapes[j].deltaBlendshape[i];
 			}
 
-			newPositions[i] += neutralFace.vpositions[i] * neutralWeight;
+			customPositions[i] += neutralFace.vpositions[i];// *neutralWeight;
 		}
 
 		delete[] adjustedWeights;
 		adjustedWeights = nullptr;
-		return newPositions;			//this needs to be destroyed before calling this function again
 	}
 
-	float * blendshape::recalculateNormals(std::vector<unsigned int> indices, int numVertices, float * customPositions)
+	void blendshape::recalculateNormals(std::vector<unsigned int> indices, int numVertices, float * customPositions, float* &customNormals)
 	{
-		float* newNormals = new float[numVertices * 3]{ 0.0f };
-
-		//int numTriangles = indices.size() / 3;
-
 		for (int i = 0; i < indices.size(); i += 3)
 		{
-			// first triangle index = i
-			// second triangle index = i + 1
-			// third triangle index = i + 2
-			
-			glm::vec3 v1 = glm::vec3(customPositions[indices[i * 3 + 1] + 0] - customPositions[indices[i * 3] + 0],
-								customPositions[indices[i * 3 + 1] + 1] - customPositions[indices[i * 3] + 1],
-								customPositions[indices[i * 3 + 1] + 2] - customPositions[indices[i * 3]  + 2]);
-			glm::vec3 v2 = glm::vec3(customPositions[indices[i * 3 + 2] + 0] - customPositions[indices[i * 3]  + 0],
-								customPositions[indices[i * 3 + 2]  + 1] - customPositions[indices[i * 3] + 1],
-								customPositions[indices[i * 3 + 2]  + 2] - customPositions[indices[i * 3] + 2]);
+			// first point index = indices[i]
+			// second point index = indices[i + 1]
+			// third point index = indices[i + 2]
+			// start of 3 floats for Point 1 = indices[i] * 3
+			// start of 3 floats for Point 2 = indices[i + 1] * 3
+			// start of 3 floats for Point 3 = indices[i + 2] * 3
+
+			// Point 1 x = customPositions[indices[i] * 3]
+			// Point 1 y = customPositions[indices[i] * 3 + 1]
+			// Point 1 z = customPositions[indices[i] * 3 + 2]
+			// Point 2 x = customPositions[indices[i + 1] * 3]
+			// Point 2 y = customPositions[indices[i + 1] * 3 + 1]
+			// Point 2 z = customPositions[indices[i + 1] * 3 + 2]
+			// Point 3 x = customPositions[indices[i + 2] * 3]
+			// Point 3 y = customPositions[indices[i + 2] * 3 + 1]
+			// Point 3 z = customPositions[indices[i + 2] * 3 + 2]
+
+			// set to 0
+			for (int i = 0; i < numVertices * 3; i++)
+			{
+				customNormals[i] = 0.0f;
+			}
+
+			glm::vec3 v1 = glm::vec3(customPositions[indices[i + 1] * 3] - customPositions[indices[i] * 3],
+				customPositions[indices[i + 1] * 3 + 1] - customPositions[indices[i] * 3 + 1],
+				customPositions[indices[i + 1] * 3 + 2] - customPositions[indices[i] * 3 + 2]);
+			glm::vec3 v2 = glm::vec3(customPositions[indices[i + 2] * 3] - customPositions[indices[i] * 3],
+				customPositions[indices[i + 2] * 3 + 1] - customPositions[indices[i] * 3 + 1],
+				customPositions[indices[i + 2] * 3 + 2] - customPositions[indices[i] * 3 + 2]);
 
 			glm::vec3 normal = glm::cross(v1, v2);
 
@@ -66,13 +85,11 @@ namespace Assignment1
 
 			for (int j = 0; j < 3; j++)
 			{
-				newNormals[indices[i * 3 + j] + 0] += normal.x;
-				newNormals[indices[i * 3 + j] + 1] += normal.y;
-				newNormals[indices[i * 3 + j] + 2] += normal.z;
+				customNormals[indices[i + j] * 3 + 0] += normal.x;
+				customNormals[indices[i + j] * 3 + 1] += normal.y;
+				customNormals[indices[i + j] * 3 + 2] += normal.z;
 			}
 		}
-
-		return newNormals;
 	}
 
 	float blendshape::calculateWeightsLength(int numWeights, float * weights)

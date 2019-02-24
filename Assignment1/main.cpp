@@ -35,6 +35,17 @@
 #include "Blendshape.h"
 #include "Face.h"
 
+// Macro for indexing vertex buffer
+#define BUFFER_OFFSET(i) ((char *)NULL + (i))
+#define MAX_OBJECTS 30
+#define MAX_MARKERS 50
+#define NUM_BLENDSHAPES 2
+
+
+using namespace glm;
+using namespace std;
+using namespace Assignment1;
+
 void get_files_in_directory(
 	std::set<std::string> &out, //list of file names within directory
 	const std::string &directory //absolute path to the directory
@@ -45,17 +56,10 @@ bool read_obj(const std::string& filename,
 	std::vector<glm::vec2> &tex_coords,
 	std::vector<glm::vec3> &normals,
 	std::vector<std::vector<int>> &indices);
-// Macro for indexing vertex buffer
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-#define MAX_OBJECTS 30
-#define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 2
-
-using namespace glm;
-using namespace std;
-using namespace Assignment1;
 
 TwBar *bar;         // Pointer to a tweak bar
+
+bool usingLowRes = false;
 
 // settings
 const unsigned int SCR_WIDTH = 1920; // 1200; // 1920;
@@ -135,7 +139,7 @@ Face neutralFace;
 Face customFace;
 
 float prev_weights_length = -1.0f;
-float* weights = new float[NUM_BLENDSHAPES] {0.0f};
+float* weights = (float *)std::malloc(NUM_BLENDSHAPES * sizeof(float));
 
 void TW_CALL ResetCallback(void *clientData)
 {
@@ -147,20 +151,20 @@ void TW_CALL ResetCallback(void *clientData)
 	}	
 }
 
-void TW_CALL SetCallbackLocalJawOpen(const void *value, void *clientData)
-{
-	float *selectedWeights = (static_cast<float *>(clientData));
-	selectedWeights[0] = *(const float *)value;
-}
-
-void TW_CALL GetCallbackLocalJawOpen(void *value, void *clientData)
-{
-	float *selectedWeights = (static_cast<float *>(clientData));
-	*static_cast<float *>(value) = selectedWeights[0];
-
-	/*CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
-	*static_cast<float *>(value) = selectedObject->eulerAngles.x;*/
-}
+//void TW_CALL SetCallbackLocalJawOpen(const void *value, void *clientData)
+//{
+//	float *selectedWeights = (static_cast<float *>(clientData));
+//	selectedWeights[0] = *(const float *)value;
+//}
+//
+//void TW_CALL GetCallbackLocalJawOpen(void *value, void *clientData)
+//{
+//	float *selectedWeights = (static_cast<float *>(clientData));
+//	*static_cast<float *>(value) = selectedWeights[0];
+//
+//	/*CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+//	*static_cast<float *>(value) = selectedObject->eulerAngles.x;*/
+//}
 
 
 // Callback function called by GLFW when window size changes
@@ -444,78 +448,103 @@ Assignment1::CGObject loadObjObject(vector<objl::Mesh> meshes, bool addToBuffers
 	return object;
 }
 
+Face createFace(string faceName, objl::Mesh mesh)
+{
+	int numVertices = mesh.Vertices.size();
+
+	float* v_positions = (float *)std::malloc(numVertices * 3 * sizeof(float));
+	float* v_normals = (float *)std::malloc(numVertices * 3 * sizeof(float));
+	float* v_texcoords = (float *)std::malloc(numVertices * 2 * sizeof(float));
+	
+	// !creates 3 new arrays
+	Face::getPositionsAndNormalsFromObjl(mesh.Vertices,
+		v_positions,
+		v_normals,
+		v_texcoords);
+
+	Face newFace = Face(numVertices,
+		v_positions,
+		v_normals,
+		v_texcoords);
+
+	newFace.name = faceName;
+	newFace.indices = mesh.Indices;
+
+	return newFace;
+}
+
 void createObjects()
 {
 	// Shader Attribute locations
 	glutils.getAttributeLocations();
 
+	string dirName;
+	string neutralFileName;
+
+	if (usingLowRes)
+	{
+		dirName = "../Assignment1/meshes/Low-res Blendshape Model"; 
+		neutralFileName = "Mery_jaw_open.obj";
+	}
+	else
+	{
+		dirName = "../Assignment1/meshes/High-res Blendshape Model";
+		neutralFileName = "neutral.obj";
+	}
+
 	// Add neutral face
-	const char* neutralFileName = "../Assignment1/meshes/High-res Blendshape Model/neutral.obj";  //High-res Blendshape Model Low-res Blendshape Model
-	vector<objl::Mesh> neutralMesh = loadMeshes(neutralFileName);
+	string neutralFileNameFull = dirName + "/" + neutralFileName;
+	vector<objl::Mesh> neutralMesh = loadMeshes(neutralFileNameFull);
 
 	std::vector<objl::Mesh> new_meshNeutral;
-	//std::vector<TangentMesh> new_tangentMeshNeutral;
-	CGObject::recalculateVerticesAndIndexes(neutralMesh, new_meshNeutral); //, new_tangentMeshNeutral);
+	CGObject::recalculateVerticesAndIndexes(neutralMesh, new_meshNeutral); 
 
-	float* neutral_positions;
-	float* neutral_normals;
-	float* neutral_texcoords;
-	Face::getPositionsAndNormalsFromObjl(new_meshNeutral[0].Vertices,
-		neutral_positions,
-		neutral_normals,
-		neutral_texcoords);
+	int numberOfVertices = new_meshNeutral[0].Vertices.size();
+	int numberOfIndices = new_meshNeutral[0].Indices.size();
 
-	neutralFace = Face(new_meshNeutral[0].Vertices.size(),
-		neutral_positions,
-		neutral_normals,
-		neutral_texcoords);
-	neutralFace.name = "neutral.obj";
-	neutralFace.indices = new_meshNeutral[0].Indices;
+	neutralFace = createFace(neutralFileName, new_meshNeutral[0]);
 
 	// Load blendshapes
-	set<string> fileList;
-	get_files_in_directory(fileList, "../Assignment1/meshes/High-res Blendshape Model");
+	set<string> fileList;	
+	get_files_in_directory(fileList, dirName);
 
 	for (auto const& filename : fileList) {
 
 		if (numBlendshapes == NUM_BLENDSHAPES)
 			break;
 
-		if (filename != "neutral.obj")
+		if (filename != neutralFileName)
 		{
-			const string fullfileName = "../Assignment1/meshes/High-res Blendshape Model/" + filename;  //High-res Blendshape Model Low-res Blendshape Model
+			const string fullfileName = dirName + "/" + filename; 
 			vector<objl::Mesh> faceMeshes = loadMeshes(fullfileName);
+			
 			std::vector<objl::Mesh> new_meshBlendshape;
-			//std::vector<TangentMesh> new_tangentMeshBlendshape;
-			CGObject::recalculateVerticesAndIndexes(faceMeshes, new_meshBlendshape);//  , new_tangentMeshBlendshape);
+			CGObject::recalculateVerticesAndIndexes(faceMeshes, new_meshBlendshape);
 
-			if (new_meshNeutral[0].Vertices.size() == new_meshBlendshape[0].Vertices.size())
+			if (numberOfVertices == new_meshBlendshape[0].Vertices.size())
 			{
-				float* positions;
-				float* normals;
-				float* texcoords;
-				Face::getPositionsAndNormalsFromObjl(new_meshBlendshape[0].Vertices, positions, normals, texcoords);
-				Face face1 = Face(new_meshBlendshape[0].Vertices.size(), positions, normals, texcoords);
-				face1.calculateDeltaBlendshape(neutralFace.vpositions);
-				face1.name = filename;
-				face1.indices = new_meshBlendshape[0].Indices;
+				Face face1 = createFace(filename, new_meshBlendshape[0]);				
 
+				face1.calculateDeltaBlendshape(neutralFace.vpositions);
 				blendshapes[numBlendshapes] = face1;
 				numBlendshapes++;
 			}
 		}
 	}
 
-	float* customPositions = blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights);
-	//float* customNormals = blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions);
+	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
+	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions);
+
+	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float)); 
+	blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions, customNormals);
 
 	// Generate the only face to be displayed - from neutral for now
-	customFace = Face(new_meshNeutral[0].Vertices.size(),
+	customFace = Face(numberOfVertices,
 		customPositions,
-		//customNormals,
-		neutral_normals,
-		neutral_texcoords);
-	customFace.numVertices = neutralFace.numVertices;
+		customNormals,
+	//	neutralFace.vnormals,
+		neutralFace.vtexcoord);
+		
 	customFace.name = "Custom";
 	customFace.indices = new_meshNeutral[0].Indices;
 
@@ -527,28 +556,28 @@ void createObjects()
 	glGenBuffers(1, &glutils.faceVBO_positions);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_positions);
 	glBufferData(GL_ARRAY_BUFFER,
-		neutralFace.numVertices * 3 * sizeof(float),
+		numberOfVertices * 3 * sizeof(float),
 		neutralFace.vpositions,
 		GL_STREAM_DRAW);
 
 	glGenBuffers(1, &glutils.faceVBO_normals);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
 	glBufferData(GL_ARRAY_BUFFER,
-		neutralFace.numVertices * 3 * sizeof(float),
+		numberOfVertices * 3 * sizeof(float),
 		neutralFace.vnormals,
 		GL_STREAM_DRAW);
 
 	glGenBuffers(1, &glutils.faceVBO_texcoord);
 	glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_texcoord);
 	glBufferData(GL_ARRAY_BUFFER,
-		neutralFace.numVertices * 2 * sizeof(float),
+		numberOfVertices * 2 * sizeof(float),
 		neutralFace.vtexcoord,
 		GL_STATIC_DRAW);
 
 	glGenBuffers(1, &glutils.faceIBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, glutils.faceIBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-		neutralFace.indices.size() * 3 * sizeof(unsigned int),
+		numberOfIndices * 3 * sizeof(unsigned int),
 		&neutralFace.indices[0],
 		GL_STATIC_DRAW);
 
@@ -681,16 +710,16 @@ void display()
 	
 	//if (newWeightsLength != prev_weights_length)
 	//{		
-		float* customPositions = blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights);
-		//float* customNormals = blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customPositions);  
+		blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customFace.vpositions);
+		blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
 				
-		// Generate the only face to be displayed - from neutral for now
-		//tidy up
-		delete[] customFace.vpositions;
+		//// Generate the only face to be displayed - from neutral for now
+		////tidy up
+		//delete[] customFace.vpositions;
 		//delete[] customFace.vnormals;
 
-		//re-assign pointer
-		customFace.vpositions = customPositions;
+		////re-assign pointer
+		//customFace.vpositions = customPositions;
 		//customFace.vnormals = customNormals;
 
 		glBindVertexArray(faceVAO_positions);
@@ -702,12 +731,12 @@ void display()
 			customFace.vpositions,
 			GL_STREAM_DRAW);
 
-		//glGenBuffers(1, &glutils.faceVBO_normals);
-		//glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
-		//glBufferData(GL_ARRAY_BUFFER,
-		//	customFace.numVertices * 3 * sizeof(float),
-		//	customFace.vnormals,
-		//	GL_STREAM_DRAW);
+		glGenBuffers(1, &glutils.faceVBO_normals);
+		glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
+		glBufferData(GL_ARRAY_BUFFER,
+			customFace.numVertices * 3 * sizeof(float),
+			customFace.vnormals,
+			GL_STREAM_DRAW);
 
 		//prev_weights_length = newWeightsLength;
 	//}
@@ -762,7 +791,7 @@ void display()
 }
 
 int main(void)
-{
+{	
 	GLFWvidmode mode;   // GLFW video mode
 
 	// Initialise GLFW
@@ -822,19 +851,40 @@ int main(void)
 		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");*/
 
 	TwAddSeparator(bar, "", NULL);
-	
-	TwAddButton(bar, "Reset", ResetCallback, &weights, " label='Reset' ");
 
-		// Load blendshapes
+	// initialise weights
+	for (int i = 0; i < NUM_BLENDSHAPES; i++)
+	{
+		weights[i] = 0.0f;
+	}
+
+	TwAddButton(bar, "Reset", ResetCallback, weights, " label='Reset' ");
+
+	// Load blendshapes
+	string dirName;
+	string neutralFileName;
+
+	if (usingLowRes)
+	{
+		dirName = "../Assignment1/meshes/Low-res Blendshape Model";
+		neutralFileName = "Mery_jaw_open.obj";
+	}
+	else
+	{
+		dirName = "../Assignment1/meshes/High-res Blendshape Model";
+		neutralFileName = "neutral.obj";
+	}
+
 	set<string> fileList;
-	get_files_in_directory(fileList, "../Assignment1/meshes/High-res Blendshape Model");
+	get_files_in_directory(fileList, dirName);
+
 	int i = 0;
 	for (auto const& filename : fileList) {
 
 		if (i == NUM_BLENDSHAPES)
 			break;
 
-		if (filename != "neutral.obj")
+		if (filename != neutralFileName)
 		{			
 			string name = filename.substr(0, filename.size() - 4);			
 			string desc = " precision=2 step=0.05 min=0.0 max=1.0 group = 'Facial Expressions' label='" + name + "'";
@@ -881,16 +931,20 @@ int main(void)
 	}
 
 	// delete blendshapes
-	delete[] neutralFace.vpositions;
-	delete[] neutralFace.vnormals;
-	delete[] neutralFace.vtexcoord;
+	std::free(neutralFace.vpositions);
+	std::free(neutralFace.vnormals);
+	std::free(neutralFace.vtexcoord);
+	delete[] customFace.vpositions;
+	delete[] customFace.vnormals;
 
 	for (auto face : blendshapes) {
-		delete[] face.vpositions;
-		delete[] face.vnormals;
-		delete[] face.vtexcoord;
-		delete[] face.deltaBlendshape;
+		std::free(face.vpositions);
+		std::free(face.vnormals);
+		std::free(face.vtexcoord);
+		std::free(face.deltaBlendshape);
 	}
+
+	std::free(weights);
 
 	// optional: de-allocate all resources once they've outlived their purpose:	
 	glutils.deleteVertexArrays();

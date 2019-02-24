@@ -16,10 +16,10 @@ public:
 
 	std::string name;
 	int numVertices = 0;
-	float * vpositions;   // 3-floats per vertex
-	float * vnormals;	  // 3-floats per vertex
-	float * vtexcoord;    // 2-floats per vertex
-	float * deltaBlendshape;    // 3-floats per vertex
+	float * vpositions = nullptr;   // 3-floats per vertex
+	float * vnormals = nullptr;;	  // 3-floats per vertex
+	float * vtexcoord = nullptr;;    // 2-floats per vertex
+	float * deltaBlendshape = nullptr;;    // 3-floats per vertex
 	std::vector<unsigned int> indices;
 
 	int findIntersectingVertex(glm::vec3 ray_world);  // returns the vertex nearest to ray or -1 if no intersection
