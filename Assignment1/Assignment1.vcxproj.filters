@@ -13,6 +13,9 @@
     <ClCompile Include="Face.cpp">
       <Filter>source</Filter>
     </ClCompile>
+    <ClCompile Include="vboindexer.cpp">
+      <Filter>source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGObject.h">
@@ -31,6 +34,9 @@
       <Filter>Headers</Filter>
     </ClInclude>
     <ClInclude Include="Face.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="vboindexer.hpp">
       <Filter>Headers</Filter>
     </ClInclude>
   </ItemGroup>

@@ -81,6 +81,7 @@
     <Link>
       <AdditionalLibraryDirectories>..\Dependencies\AntTweakBar\lib;..\Dependencies\glfw\lib-vc2015;..\Dependencies\glew\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;glew32.lib;glfwdll.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <IgnoreSpecificDefaultLibraries>MSVCRT</IgnoreSpecificDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -132,6 +133,7 @@
     <ClCompile Include="CGObject.cpp" />
     <ClCompile Include="Face.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="vboindexer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\circle.fs" />
@@ -146,6 +148,7 @@
     <ClInclude Include="dirent.h" />
     <ClInclude Include="Face.h" />
     <ClInclude Include="opengl_utils.h" />
+    <ClInclude Include="vboindexer.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

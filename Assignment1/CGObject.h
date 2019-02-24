@@ -3,12 +3,22 @@
 #include <GL/glew.h>
 #include <glm/glm.hpp>
 #include "glm/gtc/matrix_transform.hpp"
+#include "vboindexer.hpp"
 #include "..\Dependencies\OBJ_loader.h"
 
 #include "opengl_utils.h"
 
 namespace Assignment1
 {
+	class TangentMesh
+	{
+	public:
+		TangentMesh(std::vector<glm::vec3>& _tangents, std::vector<glm::vec3>& _bitangents);
+		~TangentMesh();
+
+		std::vector<glm::vec3> tangents;
+		std::vector<glm::vec3> bitangents;
+	};
 	class CGObject
 	{
 	public:
@@ -16,6 +26,8 @@ namespace Assignment1
 		~CGObject();
 
 		std::vector<objl::Mesh> Meshes;
+		std::vector<TangentMesh> tangentMeshes;
+
 		std::vector<GLuint> VAOs;
 
 		// OpenGL 
@@ -48,5 +60,21 @@ namespace Assignment1
 
 		void Draw(opengl_utils glutils);
 		glm::mat4 createTransform();
+		
+		static std::vector<TangentMesh> computeTangentBasis(std::vector<objl::Mesh> Meshes);
+		
+		static void recalculateVerticesAndIndexes(std::vector<objl::Mesh> Meshes,
+			std::vector<objl::Mesh> &new_meshes);
+
+		static void recalculateVerticesAndIndexesAndTangents(std::vector<objl::Mesh> Meshes,
+			std::vector<objl::Mesh> &new_meshes,
+			std::vector<TangentMesh> &new_tangentMeshes);
+
+	private:
+		static bool is_near(float v1, float v2);
+		static bool getSimilarVertexIndex(
+			objl::Vertex & in_vertex,
+			std::vector<objl::Vertex> & out_vertices,
+			unsigned short & result);
 	};
 }

@@ -1,4 +1,6 @@
-#define _CRT_SECURE_NO_WARNINGS
+#pragma once
+#define _CRT_SECURE_NO_WARNINGS 1
+#define _WINSOCK_DEPRECATED_NO_WARNINGS 1 
 #define GLFW_DLL
 
 #include <sys/stat.h>
@@ -47,7 +49,7 @@ bool read_obj(const std::string& filename,
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 30
 #define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 24
+#define NUM_BLENDSHAPES 2
 
 using namespace glm;
 using namespace std;
@@ -56,8 +58,8 @@ using namespace Assignment1;
 TwBar *bar;         // Pointer to a tweak bar
 
 // settings
-const unsigned int SCR_WIDTH = 1200;//1920;
-const unsigned int SCR_HEIGHT = 650;//1100;
+const unsigned int SCR_WIDTH = 1920; // 1200; // 1920;
+const unsigned int SCR_HEIGHT = 1100; // 650; //1100;
 
 double time = 0, dt;// Current time and enlapsed time
 double turn = 0;    // Model turn counter
@@ -131,7 +133,19 @@ int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3);
 
 Face neutralFace;
 Face customFace;
+
+float prev_weights_length = -1.0f;
 float* weights = new float[NUM_BLENDSHAPES] {0.0f};
+
+void TW_CALL ResetCallback(void *clientData)
+{
+	float *selectedWeights = static_cast<float *>(clientData);
+
+	for (int i = 0; i < NUM_BLENDSHAPES; i++)
+	{
+		selectedWeights[i] = 0.0f;
+	}	
+}
 
 void TW_CALL SetCallbackLocalJawOpen(const void *value, void *clientData)
 {
@@ -153,131 +167,137 @@ void TW_CALL GetCallbackLocalJawOpen(void *value, void *clientData)
 void GLFWCALL WindowSizeCB(int width, int height)
 {
 	// Send the new window size to AntTweakBar
+	glViewport(0, 0, width, height);
+
 	TwWindowSize(width, height);
 }
 
+
 void GLFWCALL mouse_button_callback(int button, int action)
 {
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
-		int mouse_x, mouse_y;
-		bool foundIntersection = false;
-
-		//getting cursor position
-		glfwGetMousePos(&mouse_x, &mouse_y);
-
-		float x = (2.0f * mouse_x) / SCR_WIDTH - 1.0f;
-		float y = 1.0f - (2.0f * mouse_y) / SCR_HEIGHT;
-		float z = 1.0f;
-
-		vec3 ray_nds = vec3(x, y, z);
-
-		vec4 ray_clip = vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
-
-		vec4 ray_eye = inverse(projection) * ray_clip;
-		ray_eye = vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
-
-		vec4 temp = (inverse(view) * ray_eye);
-
-		vec3 ray_wor = vec3(temp.x, temp.y, temp.z);
-		// don't forget to normalise the vector at some point
-		ray_wor = glm::normalize(ray_wor);
-
-		// Find the other end of the ray (at far clip plane)
-		auto farpoint = cameraPos + ray_wor * farclip;
-
-		// Find closest intersection point
-		bool intersectionFound = false;
-		float zIntersection = farclip;
-		vec3 intersectionPoint;
-
-		objl::Mesh mesh;
-
-		for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
+		if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
 		{
-			for (int meshIndex = 0; meshIndex < sceneObjects[sceneIndex].Meshes.size(); meshIndex++)
+			int mouse_x, mouse_y;
+			bool foundIntersection = false;
+
+			//getting cursor position
+			glfwGetMousePos(&mouse_x, &mouse_y);
+
+			float x = (2.0f * mouse_x) / SCR_WIDTH - 1.0f;
+			float y = 1.0f - (2.0f * mouse_y) / SCR_HEIGHT;
+			float z = 1.0f;
+
+			vec3 ray_nds = vec3(x, y, z);
+
+			vec4 ray_clip = vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+			vec4 ray_eye = inverse(projection) * ray_clip;
+			ray_eye = vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+			vec4 temp = (inverse(view) * ray_eye);
+
+			vec3 ray_wor = vec3(temp.x, temp.y, temp.z);
+			// don't forget to normalise the vector at some point
+			ray_wor = glm::normalize(ray_wor);
+
+			// Find the other end of the ray (at far clip plane)
+			auto farpoint = cameraPos + ray_wor * farclip;
+
+			// Find closest intersection point
+			bool intersectionFound = false;
+			float zIntersection = farclip;
+			vec3 intersectionPoint;
+
+			objl::Mesh mesh;
+
+			for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
 			{
-				// Find intersection with the fragment
+				for (int meshIndex = 0; meshIndex < sceneObjects[sceneIndex].Meshes.size(); meshIndex++)
+				{
+					// Find intersection with the fragment
 
-				mesh = sceneObjects[sceneIndex].Meshes[meshIndex];
+					mesh = sceneObjects[sceneIndex].Meshes[meshIndex];
 
-				for (int i = 0; i < mesh.Indices.size(); i += 3) {
-					// Get the points in World co-ord
+					for (int i = 0; i < mesh.Indices.size(); i += 3) {
+						// Get the points in World co-ord
 
-					vec4 p1 = sceneObjects[sceneIndex].globalTransform *
-						vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
-							mesh.Vertices[mesh.Indices[i]].Position.Y,
-							mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
-					vec4 p2 = sceneObjects[sceneIndex].globalTransform *
-						vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
-							mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
-							mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
-					vec4 p3 = sceneObjects[sceneIndex].globalTransform*
-						vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
-							mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
-							mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
+						vec4 p1 = sceneObjects[sceneIndex].globalTransform *
+							vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
+								mesh.Vertices[mesh.Indices[i]].Position.Y,
+								mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
+						vec4 p2 = sceneObjects[sceneIndex].globalTransform *
+							vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
+								mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
+								mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
+						vec4 p3 = sceneObjects[sceneIndex].globalTransform*
+							vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
+								mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
+								mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
 
-					float volume1 = signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
-					float volume2 = signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
+						float volume1 = signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
+						float volume2 = signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
 
-					if (!sameSignVolumes(volume1, volume2))
-					{
-						float volume3 = signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
-						float volume4 = signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
-						float volume5 = signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
-
-						if (sameSignVolumes(volume3, volume4, volume5))
+						if (!sameSignVolumes(volume1, volume2))
 						{
-							// Find intersection point
+							float volume3 = signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
+							float volume4 = signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
+							float volume5 = signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
 
-							// Normal to the triangle
-							auto N = cross(vec3(p2) - vec3(p1), vec3(p3) - vec3(p1));
-
-							// distance to intersection on the line:
-							//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
-							auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
-
-							if (t < zIntersection)
+							if (sameSignVolumes(volume3, volume4, volume5))
 							{
-								// Found a closer intersection point
-								zIntersection = t;
-								intersectionPoint = cameraPos + t * ray_wor;
+								// Find intersection point
 
-								// Find the closest vertex
-								int indexOfClosestPoint = closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
+								// Normal to the triangle
+								auto N = cross(vec3(p2) - vec3(p1), vec3(p3) - vec3(p1));
 
-								// Set selected vertex - this may be overwritten by a closer point later on
-								foundIntersection = true;
+								// distance to intersection on the line:
+								//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
+								auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
 
-								if (selectedSceneObject != sphereObjectIndex)
+								if (t < zIntersection)
 								{
-									vertexSelected = true;
-									selectedSceneObject = sceneIndex;
-									selectedObjectMesh = meshIndex;
-									selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
+									// Found a closer intersection point
+									zIntersection = t;
+									intersectionPoint = cameraPos + t * ray_wor;
 
-									auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
-									tw_posX = selectedVertexLocal.X;
-									tw_posY = selectedVertexLocal.Y;
-									tw_posZ = selectedVertexLocal.Z;
+									// Find the closest vertex
+									int indexOfClosestPoint = closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
 
-									if (indexOfClosestPoint == 1)
+									// Set selected vertex - this may be overwritten by a closer point later on
+									foundIntersection = true;
+
+									if (selectedSceneObject != sphereObjectIndex)
 									{
-										tw_posX_world = p1.x;
-										tw_posY_world = p1.y;
-										tw_posZ_world = p1.z;
-									}
-									else if (indexOfClosestPoint = 2)
-									{
-										tw_posX_world = p2.x;
-										tw_posY_world = p2.y;
-										tw_posZ_world = p2.z;
-									}
-									else
-									{
-										tw_posX_world = p3.x;
-										tw_posY_world = p3.y;
-										tw_posZ_world = p3.z;
+										vertexSelected = true;
+										selectedSceneObject = sceneIndex;
+										selectedObjectMesh = meshIndex;
+										selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
+
+										auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
+										tw_posX = selectedVertexLocal.X;
+										tw_posY = selectedVertexLocal.Y;
+										tw_posZ = selectedVertexLocal.Z;
+
+										if (indexOfClosestPoint == 1)
+										{
+											tw_posX_world = p1.x;
+											tw_posY_world = p1.y;
+											tw_posZ_world = p1.z;
+										}
+										else if (indexOfClosestPoint = 2)
+										{
+											tw_posX_world = p2.x;
+											tw_posY_world = p2.y;
+											tw_posZ_world = p2.z;
+										}
+										else
+										{
+											tw_posX_world = p3.x;
+											tw_posY_world = p3.y;
+											tw_posZ_world = p3.z;
+										}
 									}
 								}
 							}
@@ -285,11 +305,12 @@ void GLFWCALL mouse_button_callback(int button, int action)
 					}
 				}
 			}
+			if (!foundIntersection)
+			{
+				vertexSelected = false;
+			}
 		}
-		if (!foundIntersection)
-		{
-			vertexSelected = false;
-		}
+
 	}
 }
 
@@ -429,58 +450,74 @@ void createObjects()
 	glutils.getAttributeLocations();
 
 	// Add neutral face
-	const char* neutralFileName = "../Assignment1/meshes/Low-res Blendshape Model/neutral.obj";
+	const char* neutralFileName = "../Assignment1/meshes/High-res Blendshape Model/neutral.obj";  //High-res Blendshape Model Low-res Blendshape Model
 	vector<objl::Mesh> neutralMesh = loadMeshes(neutralFileName);
+
+	std::vector<objl::Mesh> new_meshNeutral;
+	//std::vector<TangentMesh> new_tangentMeshNeutral;
+	CGObject::recalculateVerticesAndIndexes(neutralMesh, new_meshNeutral); //, new_tangentMeshNeutral);
 
 	float* neutral_positions;
 	float* neutral_normals;
 	float* neutral_texcoords;
-	Face::getPositionsAndNormalsFromObjl(neutralMesh[0].Vertices, 
-						neutral_positions, 
-						neutral_normals, 
-						neutral_texcoords);
+	Face::getPositionsAndNormalsFromObjl(new_meshNeutral[0].Vertices,
+		neutral_positions,
+		neutral_normals,
+		neutral_texcoords);
 
-	neutralFace = Face (neutralMesh[0].Vertices.size(),
-						neutral_positions,
-						neutral_normals,
-						neutral_texcoords);
+	neutralFace = Face(new_meshNeutral[0].Vertices.size(),
+		neutral_positions,
+		neutral_normals,
+		neutral_texcoords);
 	neutralFace.name = "neutral.obj";
-	neutralFace.indices = neutralMesh[0].Indices;
-	
+	neutralFace.indices = new_meshNeutral[0].Indices;
+
 	// Load blendshapes
 	set<string> fileList;
-	get_files_in_directory(fileList, "../Assignment1/meshes/Low-res Blendshape Model");
-	
+	get_files_in_directory(fileList, "../Assignment1/meshes/High-res Blendshape Model");
+
 	for (auto const& filename : fileList) {
+
+		if (numBlendshapes == NUM_BLENDSHAPES)
+			break;
+
 		if (filename != "neutral.obj")
 		{
-			const string fullfileName = "../Assignment1/meshes/Low-res Blendshape Model/" + filename;
+			const string fullfileName = "../Assignment1/meshes/High-res Blendshape Model/" + filename;  //High-res Blendshape Model Low-res Blendshape Model
 			vector<objl::Mesh> faceMeshes = loadMeshes(fullfileName);
-			float* positions;
-			float* normals;
-			float* texcoords;
-			Face::getPositionsAndNormalsFromObjl(faceMeshes[0].Vertices, positions, normals, texcoords);
-			Face face1 = Face(faceMeshes[0].Vertices.size(), positions, normals, texcoords);
-			face1.calculateDeltaBlendshape(neutralFace.vpositions);
-			face1.name = filename;
-			face1.indices = faceMeshes[0].Indices;
+			std::vector<objl::Mesh> new_meshBlendshape;
+			//std::vector<TangentMesh> new_tangentMeshBlendshape;
+			CGObject::recalculateVerticesAndIndexes(faceMeshes, new_meshBlendshape);//  , new_tangentMeshBlendshape);
 
-			blendshapes[numBlendshapes] = face1;
-			numBlendshapes++;
+			if (new_meshNeutral[0].Vertices.size() == new_meshBlendshape[0].Vertices.size())
+			{
+				float* positions;
+				float* normals;
+				float* texcoords;
+				Face::getPositionsAndNormalsFromObjl(new_meshBlendshape[0].Vertices, positions, normals, texcoords);
+				Face face1 = Face(new_meshBlendshape[0].Vertices.size(), positions, normals, texcoords);
+				face1.calculateDeltaBlendshape(neutralFace.vpositions);
+				face1.name = filename;
+				face1.indices = new_meshBlendshape[0].Indices;
+
+				blendshapes[numBlendshapes] = face1;
+				numBlendshapes++;
+			}
 		}
 	}
-	
+
 	float* customPositions = blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights);
-	float* customNormals = blendshape::recalculateNormals(neutralFace.numVertices, customPositions);  //TODO: assumption here that indices are in order of vertices
+	//float* customNormals = blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions);
 
 	// Generate the only face to be displayed - from neutral for now
-	customFace = Face(neutralMesh[0].Vertices.size(),
+	customFace = Face(new_meshNeutral[0].Vertices.size(),
 		customPositions,
 		//customNormals,
 		neutral_normals,
 		neutral_texcoords);
+	customFace.numVertices = neutralFace.numVertices;
 	customFace.name = "Custom";
-	customFace.indices = neutralMesh[0].Indices;
+	customFace.indices = new_meshNeutral[0].Indices;
 
 	glGenVertexArrays(1, &faceVAO_positions);
 
@@ -577,11 +614,6 @@ void init()
 	createObjects();
 }
 
-void drawFace()
-{
-
-}
-
 void display()
 {
 	// render
@@ -603,7 +635,7 @@ void display()
 	glUseProgram(glutils.PhongProgramID);
 
 	// Enable OpenGL transparency and light (could have been done once at init)
-	//glEnable(GL_BLEND);
+	glEnable(GL_SMOOTH);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glEnable(GL_DEPTH_TEST);
 	//glEnable(GL_LIGHT0);    // use default light diffuse and position
@@ -646,10 +678,40 @@ void display()
 	glDisableVertexAttribArray(glutils.loc3);*/
 
 	// DRAW FACE
-	//	glUseProgram(flagID);
+	
+	//if (newWeightsLength != prev_weights_length)
+	//{		
+		float* customPositions = blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights);
+		//float* customNormals = blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customPositions);  
+				
+		// Generate the only face to be displayed - from neutral for now
+		//tidy up
+		delete[] customFace.vpositions;
+		//delete[] customFace.vnormals;
 
+		//re-assign pointer
+		customFace.vpositions = customPositions;
+		//customFace.vnormals = customNormals;
 
-	// TODO: recalculate vertices and re-generate buffers
+		glBindVertexArray(faceVAO_positions);
+
+		glGenBuffers(1, &glutils.faceVBO_positions);
+		glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_positions);
+		glBufferData(GL_ARRAY_BUFFER,
+			customFace.numVertices * 3 * sizeof(float),
+			customFace.vpositions,
+			GL_STREAM_DRAW);
+
+		//glGenBuffers(1, &glutils.faceVBO_normals);
+		//glBindBuffer(GL_ARRAY_BUFFER, glutils.faceVBO_normals);
+		//glBufferData(GL_ARRAY_BUFFER,
+		//	customFace.numVertices * 3 * sizeof(float),
+		//	customFace.vnormals,
+		//	GL_STREAM_DRAW);
+
+		//prev_weights_length = newWeightsLength;
+	//}
+	
 	glutils.linkFaceBuffertoShader(faceVAO_positions);
 
 	glm::mat4 faceTransform = glm::mat4(1);
@@ -658,8 +720,6 @@ void display()
 	glutils.updateUniformVariables(glm::scale(faceTransform, vec3(0.2f, 0.2f, 0.2f)), view, projection);
 	glUniform3f(glutils.objectColorLoc, 1.0f, 1.0f, 1.0f);
 	glDrawElements(GL_TRIANGLES, customFace.indices.size(), GL_UNSIGNED_INT, 0);
-
-	//drawFace();
 
 	/*glDisableVertexAttribArray(glutils.loc1);
 	glDisableVertexAttribArray(glutils.loc2);
@@ -693,8 +753,7 @@ void display()
 	}
 
 	glPopMatrix();
-
-
+	
 	// Draw tweak bars
 	TwDraw();
 
@@ -730,14 +789,14 @@ int main(void)
 	glfwSetWindowTitle("Facial Animation");
 
 	// Initialize AntTweakBar
-	TwInit(TW_OPENGL, NULL);
+	TwInit(TW_OPENGL_CORE, NULL);
 
 	// Create a tweak bar
 	bar = TwNewBar("Blendshapes");
 
 	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
-
+	TwDefine(" Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
+	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
 	TwAddVarRO(bar, "time", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
 
@@ -745,7 +804,7 @@ int main(void)
 
 	//TwAddVarRO(bar, "selected Mesh index", TW_TYPE_INT32, &selectedObjectMesh, " label='Selected mesh index' precision=0 help='Index of the selected mesh.' ");
 
-	TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
+	/*TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
 
 	TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX,
 		" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
@@ -760,12 +819,32 @@ int main(void)
 	TwAddVarRO(bar, "selected - posY - world", TW_TYPE_FLOAT, &tw_posY_world,
 		" label='PosY - world' precision=2 help='World Y-coord of the selected vertex.' ");
 	TwAddVarRO(bar, "selected - posZ - world", TW_TYPE_FLOAT, &tw_posZ_world,
-		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");
+		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");*/
 
 	TwAddSeparator(bar, "", NULL);
+	
+	TwAddButton(bar, "Reset", ResetCallback, &weights, " label='Reset' ");
+
+		// Load blendshapes
+	set<string> fileList;
+	get_files_in_directory(fileList, "../Assignment1/meshes/High-res Blendshape Model");
+	int i = 0;
+	for (auto const& filename : fileList) {
+
+		if (i == NUM_BLENDSHAPES)
+			break;
+
+		if (filename != "neutral.obj")
+		{			
+			string name = filename.substr(0, filename.size() - 4);			
+			string desc = " precision=2 step=0.05 min=0.0 max=1.0 group = 'Facial Expressions' label='" + name + "'";
+			TwAddVarRW(bar, name.c_str(), TW_TYPE_FLOAT, &weights[i], desc.c_str());
+			i++;
+		}
+	}
 
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarCB(bar, "JawOpen", TW_TYPE_FLOAT, SetCallbackLocalJawOpen, GetCallbackLocalJawOpen, &weights, " group='Facial Expressions' step=0.05 label='Jaw Open' precision=2 ");
+	//TwAddVarCB(bar, "JawOpen", TW_TYPE_FLOAT, SetCallbackLocalJawOpen, GetCallbackLocalJawOpen, &weights, " group='Facial Expressions' step=0.05 label='Jaw Open' precision=2 ");
 
 	// Set GLFW event callbacks
 	// - Redirect window size changes to the callback function WindowSizeCB

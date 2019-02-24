@@ -228,8 +228,11 @@ namespace Assignment1
 			
 			glEnableVertexAttribArray(loc2);
 			glBindBuffer(GL_ARRAY_BUFFER, faceVBO_normals);
-			glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_TRUE, 0, (void*) 0); //3 * sizeof(float)
+			glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_TRUE, 0, (void*) 0);
 			
+			glEnableVertexAttribArray(loc3);
+			glBindBuffer(GL_ARRAY_BUFFER, faceVBO_texcoord);
+			glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_TRUE, 0, (void*)0); 
 
 			//IBO
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, faceIBO);
