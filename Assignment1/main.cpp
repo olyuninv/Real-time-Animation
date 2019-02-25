@@ -34,6 +34,7 @@
 #include "..\Dependencies\OBJ_Loader.h"
 #include "Blendshape.h"
 #include "Face.h"
+#include "Geometry.h"
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
@@ -59,7 +60,7 @@ bool read_obj(const std::string& filename,
 
 TwBar *bar;         // Pointer to a tweak bar
 
-bool usingLowRes = false;
+bool usingLowRes = true;
 
 // settings
 const unsigned int SCR_WIDTH = 1920; // 1200; // 1920;
@@ -130,11 +131,6 @@ float tw_posX_world = 0.0f;
 float tw_posY_world = 0.0f;
 float tw_posZ_world = 0.0f;
 
-float signedVolume(vec3 a, vec3 b, vec3 c, vec3 d);
-bool sameSignVolumes(float vol1, float vol2);
-bool sameSignVolumes(float vol1, float vol2, float vol3);
-int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3);
-
 Face neutralFace;
 Face customFace;
 
@@ -151,22 +147,6 @@ void TW_CALL ResetCallback(void *clientData)
 	}	
 }
 
-//void TW_CALL SetCallbackLocalJawOpen(const void *value, void *clientData)
-//{
-//	float *selectedWeights = (static_cast<float *>(clientData));
-//	selectedWeights[0] = *(const float *)value;
-//}
-//
-//void TW_CALL GetCallbackLocalJawOpen(void *value, void *clientData)
-//{
-//	float *selectedWeights = (static_cast<float *>(clientData));
-//	*static_cast<float *>(value) = selectedWeights[0];
-//
-//	/*CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
-//	*static_cast<float *>(value) = selectedObject->eulerAngles.x;*/
-//}
-
-
 // Callback function called by GLFW when window size changes
 void GLFWCALL WindowSizeCB(int width, int height)
 {
@@ -175,7 +155,6 @@ void GLFWCALL WindowSizeCB(int width, int height)
 
 	TwWindowSize(width, height);
 }
-
 
 void GLFWCALL mouse_button_callback(int button, int action)
 {
@@ -240,16 +219,16 @@ void GLFWCALL mouse_button_callback(int button, int action)
 								mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
 								mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
 
-						float volume1 = signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
-						float volume2 = signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
+						float volume1 = Geometry::signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
+						float volume2 = Geometry::signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
 
-						if (!sameSignVolumes(volume1, volume2))
+						if (!Geometry::sameSignVolumes(volume1, volume2))
 						{
-							float volume3 = signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
-							float volume4 = signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
-							float volume5 = signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
+							float volume3 = Geometry::signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
+							float volume4 = Geometry::signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
+							float volume5 = Geometry::signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
 
-							if (sameSignVolumes(volume3, volume4, volume5))
+							if (Geometry::sameSignVolumes(volume3, volume4, volume5))
 							{
 								// Find intersection point
 
@@ -267,7 +246,7 @@ void GLFWCALL mouse_button_callback(int button, int action)
 									intersectionPoint = cameraPos + t * ray_wor;
 
 									// Find the closest vertex
-									int indexOfClosestPoint = closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
+									int indexOfClosestPoint = Geometry::closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
 
 									// Set selected vertex - this may be overwritten by a closer point later on
 									foundIntersection = true;
@@ -309,8 +288,16 @@ void GLFWCALL mouse_button_callback(int button, int action)
 					}
 				}
 			}
+
 			if (!foundIntersection)
 			{
+				// Look for intersection with the face
+				int intersectingVertex = -1;
+				foundIntersection = customFace.findIntersectingVertex(ray_wor, intersectingVertex);
+			}
+
+			if (!foundIntersection)
+			{				
 				vertexSelected = false;
 			}
 		}
@@ -337,47 +324,6 @@ void GLFWCALL key_callback(int button, int action)
 	}
 }
 
-float signedVolume(vec3 a, vec3 b, vec3 c, vec3 d)
-{
-	return (1.0f / 6.0f)*dot(cross(b - a, c - a), d - a);
-}
-
-bool sameSignVolumes(float a, float b)
-{
-	if (a >= 0 && b >= 0 || a < 0 && b < 0)
-		return true;
-
-	return false;
-}
-
-
-bool sameSignVolumes(float a, float b, float c)
-{
-	if (a >= 0 && b >= 0 && c >= 0 || a < 0 && b < 0 && c < 0)
-		return true;
-
-	return false;
-}
-
-int closestPoint(vec3 intersection, vec3 p1, vec3 p2, vec3 p3)
-{
-	float len1 = length(intersection - p1);
-	float len2 = length(intersection - p2);
-	float len3 = length(intersection - p3);
-
-	if (len1 <= len2 && len1 <= len3)
-	{
-		return 1;
-	}
-	else if (len2 <= len3)
-	{
-		return 2;
-	}
-	else
-	{
-		return 3;
-	}
-}
 
 void addToObjectBuffer(Assignment1::CGObject *cg_object)
 {
@@ -532,22 +478,20 @@ void createObjects()
 		}
 	}
 
-	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
-	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float)); 
-	
-	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions);// , customNormals);
+	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));		
+	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions); // , customNormals);
 		
-	//blendshape::recalculateNormals(neutralFace.indices, new_meshNeutral[0].Vertices.size(), customPositions, customNormals);
+	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
+	blendshape::recalculateNormals(neutralFace.indices, numberOfVertices, customPositions, customNormals);
 
 	// Generate the only face to be displayed - from neutral for now
 	customFace = Face(numberOfVertices,
 		customPositions,
 		customNormals,
 		//neutralFace.vnormals,
-		neutralFace.vtexcoord);
-		
+		neutralFace.vtexcoord);		
 	customFace.name = "Custom";
-	customFace.indices = new_meshNeutral[0].Indices;
+	customFace.indices = neutralFace.indices;
 
 	glGenVertexArrays(1, &faceVAO_positions);
 
@@ -654,7 +598,7 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 	//if (newWeightsLength != prev_weights_length)
 	//{		
 		blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customFace.vpositions);
-		//blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
+		blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
 
 		//// Generate the only face to be displayed - from neutral for now
 		////tidy up
@@ -688,9 +632,12 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 
 	glm::mat4 faceTransform = glm::mat4(1);
 	faceTransform = glm::translate(faceTransform, vec3(0.0f, -3.0f, 0.0f));
-	//faceTransform = glm::rotate(faceTransform, 2.0f, vec3(0.0f, 1.0f, 0.0f));
-	glutils.updateUniformVariables(glm::scale(faceTransform, vec3(0.2f, 0.2f, 0.2f)), view, projection);
-	glUniform3f(glutils.objectColorLoc, 1.0f, 1.0f, 1.0f);
+	faceTransform = glm::scale(faceTransform, vec3(0.2f, 0.2f, 0.2f));
+
+	glutils.updateUniformVariables(faceTransform, view, projection);
+	customFace.globalTransform = faceTransform; // keep current state	
+	
+	glUniform3f(glutils.objectColorLoc, 1.0f, 0.5f, 1.0f);
 	glDrawElements(GL_TRIANGLES, customFace.indices.size(), GL_UNSIGNED_INT, 0);
 
 	glDisableVertexAttribArray(glutils.loc1);

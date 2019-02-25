@@ -49,7 +49,7 @@ namespace Assignment1
 		{
 			customNormals[i] = 0.0f;
 		}
-		
+
 		for (int i = 0; i < indices.size(); i += 3)
 		{
 			// first point index = indices[i]
@@ -59,46 +59,35 @@ namespace Assignment1
 			// start of 3 floats for Point 2 = indices[i + 1] * 3
 			// start of 3 floats for Point 3 = indices[i + 2] * 3
 
-			float P1x = customPositions[indices[i] * 3];
-			float P1y = customPositions[indices[i] * 3 + 1];
-			float P1z = customPositions[indices[i] * 3 + 2];
-			float P2x = customPositions[indices[i + 1] * 3];
-			float P2y = customPositions[indices[i + 1] * 3 + 1];
-			float P2z = customPositions[indices[i + 1] * 3 + 2];
-			float P3x = customPositions[indices[i + 2] * 3];
-			float P3y = customPositions[indices[i + 2] * 3 + 1];
-			float P3z = customPositions[indices[i + 2] * 3 + 2];
+			// Point 1 x = customPositions[indices[i] * 3]
+			// Point 1 y = customPositions[indices[i] * 3 + 1]
+			// Point 1 z = customPositions[indices[i] * 3 + 2]
+			// Point 2 x = customPositions[indices[i + 1] * 3]
+			// Point 2 y = customPositions[indices[i + 1] * 3 + 1]
+			// Point 2 z = customPositions[indices[i + 1] * 3 + 2]
+			// Point 3 x = customPositions[indices[i + 2] * 3]
+			// Point 3 y = customPositions[indices[i + 2] * 3 + 1]
+			// Point 3 z = customPositions[indices[i + 2] * 3 + 2]			
 
-			// U = P2 - P1
-			float Ux = P2x - P1x;
-			float Uy = P2y - P1y;
-			float Uz = P2z - P1z;
-			//V = P3 - P1
-			float Vx = P3x - P1x;
-			float Vy = P3y - P1y;
-			float Vz = P3z - P1z;
+			glm::vec3 v1 = glm::vec3(customPositions[indices[i + 1] * 3] - customPositions[indices[i] * 3],
+				customPositions[indices[i + 1] * 3 + 1] - customPositions[indices[i] * 3 + 1],
+				customPositions[indices[i + 1] * 3 + 2] - customPositions[indices[i] * 3 + 2]);
+			glm::vec3 v2 = glm::vec3(customPositions[indices[i + 2] * 3] - customPositions[indices[i] * 3],
+				customPositions[indices[i + 2] * 3 + 1] - customPositions[indices[i] * 3 + 1],
+				customPositions[indices[i + 2] * 3 + 2] - customPositions[indices[i] * 3 + 2]);
 
-			float Nx = Uy * Vz - Uz * Vy;
-			float Ny = Uz * Vx - Ux * Vz;
-			float Nz = Ux * Vy - Uy * Vx;
-			float length = sqrt(Nx*Nx + Ny * Ny + Nz * Nz);
+			glm::vec3 normal = glm::cross(v1, v2);
 
-			Nx = Nx / length;
-			Ny = Ny / length;
-			Nz = Nz / length;
+			normal = glm::normalize(normal);
+			//glm::vec3 curr_normal = glm::vec3(newNormals[indices[i * 3]], newNormals[indices[i * 3] + 1], newNormals[indices[i * 3] + 2]);
+
+			//glm::vec3 newNormal = glm::normalize(curr_normal + normal);
 
 			for (int j = 0; j < 3; j++)
 			{
-				customNormals[indices[i + j] * 3] += Nx;
-				customNormals[indices[i + j] * 3 + 1] += Ny;
-				customNormals[indices[i + j] * 3 + 2] += Nz;
-				float lengthFinal = (customNormals[indices[i + j] * 3] * customNormals[indices[i + j] * 3] +
-					customNormals[indices[i + j] * 3 + 1] * customNormals[indices[i + j] * 3 + 1] +
-					customNormals[indices[i + j] * 3 + 2] * customNormals[indices[i + j] * 3 + 2]);
-
-				customNormals[indices[i + j] * 3] = customNormals[indices[i + j] * 3] / lengthFinal;
-				customNormals[indices[i + j] * 3 + 1] = customNormals[indices[i + j] * 3 + 1] / lengthFinal;
-				customNormals[indices[i + j] * 3 + 2] = customNormals[indices[i + j] * 3 + 2] / lengthFinal;
+				customNormals[indices[i + j] * 3 + 0] += normal.x;
+				customNormals[indices[i + j] * 3 + 1] += normal.y;
+				customNormals[indices[i + j] * 3 + 2] += normal.z;
 			}
 		}
 	}

@@ -147,6 +147,7 @@
     <ClInclude Include="CGObject.h" />
     <ClInclude Include="dirent.h" />
     <ClInclude Include="Face.h" />
+    <ClInclude Include="Geometry.h" />
     <ClInclude Include="opengl_utils.h" />
     <ClInclude Include="vboindexer.hpp" />
   </ItemGroup>
