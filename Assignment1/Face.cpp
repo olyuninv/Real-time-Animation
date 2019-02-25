@@ -152,4 +152,14 @@ namespace Assignment1
 			deltaBlendshape[i] = this->vpositions[i] - neutralPositions[i];
 		}
 	}
+
+	void Face::calculateDeltaNormals(float* &neutralNormals)
+	{
+		this->deltaNormal = (float *)std::malloc(this->numVertices * 3 * sizeof(float));
+
+		for (int i = 0; i < this->numVertices * 3; i++)
+		{
+			deltaNormal[i] = this->vnormals[i] - neutralNormals[i];
+		}
+	}
 }

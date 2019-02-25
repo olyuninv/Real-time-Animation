@@ -544,6 +544,7 @@ void createFaces()
 				Face face1 = createFace(filename, new_meshBlendshape[0]);
 
 				face1.calculateDeltaBlendshape(neutralFace.vpositions);
+				face1.calculateDeltaNormals(neutralFace.vnormals);
 				blendshapes[numBlendshapes] = face1;
 				numBlendshapes++;
 			}
@@ -551,10 +552,10 @@ void createFaces()
 	}
 
 	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
-	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions); // , customNormals);
-
 	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
-	blendshape::recalculateNormals(neutralFace.indices, numberOfVertices, customPositions, customNormals);
+	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions, customNormals);
+		
+	//blendshape::recalculateNormals(neutralFace.indices, numberOfVertices, customPositions, customNormals);
 
 	// Generate the only face to be displayed - from neutral for now
 	customFace = Face(numberOfVertices,
@@ -705,8 +706,14 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 
 	//if (newWeightsLength != prev_weights_length)
 	//{		
-	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customFace.vpositions);
-	blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
+	free(customFace.vpositions);
+	free(customFace.vnormals);
+
+	float* customPositions = (float *)std::malloc(neutralFace.numVertices * 3 * sizeof(float));
+	float* customNormals = (float *)std::malloc(neutralFace.numVertices * 3 * sizeof(float));
+
+	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions, customNormals);
+	//blendshape::recalculateNormals(neutralFace.indices, neutralFace.numVertices, customFace.vpositions, customFace.vnormals);
 
 	//// Generate the only face to be displayed - from neutral for now
 	////tidy up
@@ -714,8 +721,8 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 	//delete[] customFace.vnormals;
 
 	////re-assign pointer
-	//customFace.vpositions = customPositions;
-	//customFace.vnormals = customNormals;
+	customFace.vpositions = customPositions;
+	customFace.vnormals = customNormals;
 
 	glBindVertexArray(faceVAO_positions);
 

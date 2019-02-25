@@ -26,6 +26,8 @@ namespace Assignment1
 		float * vnormals = nullptr;;	  // 3-floats per vertex
 		float * vtexcoord = nullptr;;    // 2-floats per vertex
 		float * deltaBlendshape = nullptr;;    // 3-floats per vertex
+		float * deltaNormal = nullptr;;    // 3-floats per vertex
+
 		std::vector<unsigned int> indices;
 
 		// Current position
@@ -38,6 +40,8 @@ namespace Assignment1
 		static void getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices, float* &vpositions, float* &vnormals, float* &vtexcoord);
 
 		void calculateDeltaBlendshape(float* &neutralPositions);
+
+		void calculateDeltaNormals(float* &neutralNormals);
 	};
 
 }

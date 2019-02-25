@@ -15,7 +15,7 @@ namespace Assignment1
 
 		~blendshape();
 
-		static void calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions); //, float* &customNormals);
+		static void calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions, float* &customNormals);
 
 		static void recalculateNormals(std::vector<unsigned int> indices, int numVertices, float * customPositions, float* &customNormals);
 

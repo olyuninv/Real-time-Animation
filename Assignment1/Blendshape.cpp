@@ -10,7 +10,7 @@ namespace Assignment1
 	{
 	}
 
-	void blendshape::calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions) //, float* &customNormals)
+	void blendshape::calculateFace(Face neutralFace, int numBlendshapes, Face * blendshapes, float * weights, float* &customPositions, float* &customNormals)
 	{
 		float newWeightsLength = blendshape::calculateWeightsLength(numBlendshapes, weights);
 
@@ -26,17 +26,29 @@ namespace Assignment1
 		for (int i = 0; i < neutralFace.numVertices * 3; i++)
 		{
 			customPositions[i] = 0.0f;
+			customNormals[i] = 0.0f;
 		}
 
 		for (int i = 0; i < neutralFace.numVertices * 3; i++)
 		{
 			for (int j = 0; j < numBlendshapes; j++)
 			{
-				customPositions[i] += adjustedWeights[j] * blendshapes[j].deltaBlendshape[i];
+				customPositions[i] += adjustedWeights[j] * blendshapes[j].deltaBlendshape[i]; 
+				customNormals[i] += adjustedWeights[j] * blendshapes[j].deltaNormal[i];
 			}
 
 			customPositions[i] += neutralFace.vpositions[i];// *neutralWeight;
+			customNormals[i] += neutralFace.vnormals[i];// *neutralWeight;
 		}
+
+		//// normalise the normals
+		//for (int i = 0; i < neutralFace.numVertices * 3; i+= 3 )
+		//{
+		//	float normalLength = sqrt(customNormals[i] * customNormals[i] + customNormals[i + 1] * customNormals[i + 1] + customNormals[i + 2] * customNormals[i + 2]);
+		//	customNormals[i] = customNormals[i] / normalLength;
+		//	customNormals[i + 1] = customNormals[i + 1] / normalLength;
+		//	customNormals[i + 2] = customNormals[i + 2] / normalLength;
+		//}
 
 		delete[] adjustedWeights;
 		adjustedWeights = nullptr;
