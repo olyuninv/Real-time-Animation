@@ -26,23 +26,37 @@ namespace Assignment1
 	{
 	}
 
-	int Face::findIntersectingVertex(glm::vec3 ray_world, int &intersectingVertex)
+	bool Face::findIntersectingVertex(glm::vec3 ray_world, glm::vec3 cameraPos, float farclip, int &intersectingIndex, glm::vec3 &pointWorld)
 	{
+		// Find closest intersection point
+		bool foundIntersection = false;
+		int selectedVertexIndex = -1;
+		pointWorld = vec3(0.0f);
+
+		float zIntersection = farclip;
+		vec3 intersectionPoint;
+
+		// Find the other end of the ray (at far clip plane)
+		auto farpoint = cameraPos + ray_world * farclip;
+
 		for (int i = 0; i < this->indices.size(); i += 3) {
 
 			// Get the points in World co-ord
 			vec4 p1 = this->globalTransform *
-				vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
-					mesh.Vertices[mesh.Indices[i]].Position.Y,
-					mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
+				vec4(this->vpositions[this->indices[i] * 3],
+					this->vpositions[this->indices[i] * 3 + 1],
+					this->vpositions[this->indices[i] * 3 + 2],
+					1.0f);
 			vec4 p2 = this->globalTransform *
-				vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
-					mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
-					mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
+				vec4(this->vpositions[this->indices[i + 1] * 3],
+					this->vpositions[this->indices[i + 1] * 3 + 1],
+					this->vpositions[this->indices[i + 1] * 3 + 2],
+					1.0f);
 			vec4 p3 = this->globalTransform *
-				vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
-					mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
-					mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
+				vec4(this->vpositions[this->indices[i + 2] * 3],
+					this->vpositions[this->indices[i + 2] * 3 + 1],
+					this->vpositions[this->indices[i + 2] * 3 + 2], 
+					1.0f);
 
 			float volume1 = Geometry::signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
 			float volume2 = Geometry::signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
@@ -62,13 +76,13 @@ namespace Assignment1
 
 					// distance to intersection on the line:
 					//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
-					auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
+					auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_world);
 
 					if (t < zIntersection)
 					{
 						// Found a closer intersection point
 						zIntersection = t;
-						intersectionPoint = cameraPos + t * ray_wor;
+						intersectionPoint = cameraPos + t * ray_world;
 
 						// Find the closest vertex
 						int indexOfClosestPoint = Geometry::closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
@@ -76,40 +90,38 @@ namespace Assignment1
 						// Set selected vertex - this may be overwritten by a closer point later on
 						foundIntersection = true;
 
-						vertexSelected = true;
-						selectedSceneObject = sceneIndex;
-						selectedObjectMesh = meshIndex;
-						selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
-
-						auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
-						tw_posX = selectedVertexLocal.X;
-						tw_posY = selectedVertexLocal.Y;
-						tw_posZ = selectedVertexLocal.Z;
-
+						selectedVertexIndex = this->indices[i + indexOfClosestPoint - 1];
+						
 						if (indexOfClosestPoint == 1)
 						{
-							tw_posX_world = p1.x;
-							tw_posY_world = p1.y;
-							tw_posZ_world = p1.z;
+							pointWorld.x = p1.x;
+							pointWorld.y = p1.y;
+							pointWorld.z = p1.z;
 						}
 						else if (indexOfClosestPoint = 2)
 						{
-							tw_posX_world = p2.x;
-							tw_posY_world = p2.y;
-							tw_posZ_world = p2.z;
+							pointWorld.x = p2.x;
+							pointWorld.y = p2.y;
+							pointWorld.z = p2.z;
 						}
 						else
 						{
-							tw_posX_world = p3.x;
-							tw_posY_world = p3.y;
-							tw_posZ_world = p3.z;
+							pointWorld.x = p3.x;
+							pointWorld.y = p3.y;
+							pointWorld.z = p3.z;
 						}
 					}
 				}
 			}
 		}
 
-		return -1; //no intersection
+		if (foundIntersection)
+		{
+			intersectingIndex = selectedVertexIndex;
+			return true; // intersection found
+		}
+
+		return false; //no intersection
 	}
 
 	void Face::getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices,

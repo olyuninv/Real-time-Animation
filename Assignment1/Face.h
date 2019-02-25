@@ -29,9 +29,11 @@ namespace Assignment1
 		std::vector<unsigned int> indices;
 
 		// Current position
+
+		glm::vec3 initialScaleVector = glm::vec3(0.0f, 0.0f, 0.0f);
 		glm::mat4 globalTransform = glm::mat4(1.0);
 
-		int findIntersectingVertex(glm::vec3 ray_world, int &intersectingVertex);  // returns the vertex nearest to ray or -1 if no intersection
+		bool findIntersectingVertex(glm::vec3 ray_world, glm::vec3 cameraPos, float farclip, int &intersectingVertex, glm::vec3 &pointWorld);  // returns the vertex nearest to ray or -1 if no intersection
 
 		static void getPositionsAndNormalsFromObjl(std::vector<objl::Vertex> vertices, float* &vpositions, float* &vnormals, float* &vtexcoord);
 

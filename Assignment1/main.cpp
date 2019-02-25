@@ -38,7 +38,7 @@
 
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
-#define MAX_OBJECTS 30
+#define MAX_OBJECTS 50
 #define MAX_MARKERS 50
 #define NUM_BLENDSHAPES 2
 
@@ -79,7 +79,7 @@ int numObjects = 0;
 Face blendshapes[NUM_BLENDSHAPES];
 int numBlendshapes = 0;
 
-vector<CGObject> constraintObjects;
+//vector<CGObject> constraintObjects;
 
 opengl_utils glutils;
 
@@ -117,11 +117,11 @@ glm::vec3 lightPos(3.0f, 3.0f, 3.0f);
 // Selected vertex
 bool vertexSelected = false;
 bool markerSelected = false;
-int sphereObjectIndex = -1;
 
-int selectedSceneObject = 0;
-int selectedObjectMesh = 0;
-int selectedVertexIndex = 0;
+int selectedMarkerObject = -1;
+int selectedMarkerIndex = 0;
+int selectedObjectMesh = -1;
+int selectedVertexIndex = -1;
 
 //TW_only
 float tw_posX = 0.0f;
@@ -136,6 +136,20 @@ Face customFace;
 
 float prev_weights_length = -1.0f;
 float* weights = (float *)std::malloc(NUM_BLENDSHAPES * sizeof(float));
+
+void TW_CALL SetConstraintCallback(void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+
+	
+}
+
+void TW_CALL RemoveConstraintCallback(void *clientData)
+{
+	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+
+
+}
 
 void TW_CALL ResetCallback(void *clientData)
 {
@@ -189,7 +203,6 @@ void GLFWCALL mouse_button_callback(int button, int action)
 			auto farpoint = cameraPos + ray_wor * farclip;
 
 			// Find closest intersection point
-			bool intersectionFound = false;
 			float zIntersection = farclip;
 			vec3 intersectionPoint;
 
@@ -200,7 +213,6 @@ void GLFWCALL mouse_button_callback(int button, int action)
 				for (int meshIndex = 0; meshIndex < sceneObjects[sceneIndex].Meshes.size(); meshIndex++)
 				{
 					// Find intersection with the fragment
-
 					mesh = sceneObjects[sceneIndex].Meshes[meshIndex];
 
 					for (int i = 0; i < mesh.Indices.size(); i += 3) {
@@ -251,14 +263,14 @@ void GLFWCALL mouse_button_callback(int button, int action)
 									// Set selected vertex - this may be overwritten by a closer point later on
 									foundIntersection = true;
 
-									if (selectedSceneObject != sphereObjectIndex)
+									if (selectedMarkerObject != selectedMarkerIndex)
 									{
 										vertexSelected = true;
-										selectedSceneObject = sceneIndex;
+										selectedMarkerObject = sceneIndex;
 										selectedObjectMesh = meshIndex;
 										selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
 
-										auto selectedVertexLocal = sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
+										auto selectedVertexLocal = sceneObjects[selectedMarkerObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
 										tw_posX = selectedVertexLocal.X;
 										tw_posY = selectedVertexLocal.Y;
 										tw_posZ = selectedVertexLocal.Z;
@@ -292,13 +304,38 @@ void GLFWCALL mouse_button_callback(int button, int action)
 			if (!foundIntersection)
 			{
 				// Look for intersection with the face
-				int intersectingVertex = -1;
-				foundIntersection = customFace.findIntersectingVertex(ray_wor, intersectingVertex);
+				int intersectingVertexIndex = -1;
+				glm::vec3 pointWorld;
+				foundIntersection = customFace.findIntersectingVertex(ray_wor, cameraPos, farclip, intersectingVertexIndex, pointWorld);
+
+				if (foundIntersection)
+				{
+					vertexSelected = true;
+					selectedObjectMesh = 0;
+					selectedVertexIndex = intersectingVertexIndex;
+					
+					tw_posX = customFace.vpositions[selectedVertexIndex * 3];
+					tw_posY = customFace.vpositions[selectedVertexIndex * 3 + 1];
+					tw_posZ = customFace.vpositions[selectedVertexIndex * 3 + 2];
+
+					tw_posX_world = pointWorld.x;
+					tw_posY_world = pointWorld.y;
+					tw_posZ_world = pointWorld.z;
+					
+				}
 			}
 
 			if (!foundIntersection)
 			{				
 				vertexSelected = false;
+				selectedVertexIndex = -1;
+				tw_posX = 0.0;
+				tw_posY = 0.0;
+				tw_posZ = 0.0;
+
+				tw_posX_world = 0.0;
+				tw_posY_world = 0.0;
+				tw_posZ_world = 0.0;
 			}
 		}
 
@@ -419,17 +456,14 @@ Face createFace(string faceName, objl::Mesh mesh)
 	return newFace;
 }
 
-void createObjects()
+void createFaces()
 {
-	// Shader Attribute locations
-	glutils.getAttributeLocations();
-
 	string dirName;
 	string neutralFileName;
 
 	if (usingLowRes)
 	{
-		dirName = "../Assignment1/meshes/Low-res Blendshape Model"; 
+		dirName = "../Assignment1/meshes/Low-res Blendshape Model";
 		neutralFileName = "Mery_jaw_open.obj";
 	}
 	else
@@ -443,7 +477,7 @@ void createObjects()
 	vector<objl::Mesh> neutralMesh = loadMeshes(neutralFileNameFull);
 
 	std::vector<objl::Mesh> new_meshNeutral;
-	CGObject::recalculateVerticesAndIndexes(neutralMesh, new_meshNeutral); 
+	CGObject::recalculateVerticesAndIndexes(neutralMesh, new_meshNeutral);
 
 	int numberOfVertices = new_meshNeutral[0].Vertices.size();
 	int numberOfIndices = new_meshNeutral[0].Indices.size();
@@ -451,7 +485,7 @@ void createObjects()
 	neutralFace = createFace(neutralFileName, new_meshNeutral[0]);
 
 	// Load blendshapes
-	set<string> fileList;	
+	set<string> fileList;
 	get_files_in_directory(fileList, dirName);
 
 	for (auto const& filename : fileList) {
@@ -461,15 +495,15 @@ void createObjects()
 
 		if (filename != neutralFileName)
 		{
-			const string fullfileName = dirName + "/" + filename; 
+			const string fullfileName = dirName + "/" + filename;
 			vector<objl::Mesh> faceMeshes = loadMeshes(fullfileName);
-			
+
 			std::vector<objl::Mesh> new_meshBlendshape;
 			CGObject::recalculateVerticesAndIndexes(faceMeshes, new_meshBlendshape);
 
 			if (numberOfVertices == new_meshBlendshape[0].Vertices.size())
 			{
-				Face face1 = createFace(filename, new_meshBlendshape[0]);				
+				Face face1 = createFace(filename, new_meshBlendshape[0]);
 
 				face1.calculateDeltaBlendshape(neutralFace.vpositions);
 				blendshapes[numBlendshapes] = face1;
@@ -478,9 +512,9 @@ void createObjects()
 		}
 	}
 
-	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));		
+	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
 	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions); // , customNormals);
-		
+
 	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
 	blendshape::recalculateNormals(neutralFace.indices, numberOfVertices, customPositions, customNormals);
 
@@ -489,9 +523,10 @@ void createObjects()
 		customPositions,
 		customNormals,
 		//neutralFace.vnormals,
-		neutralFace.vtexcoord);		
+		neutralFace.vtexcoord);
 	customFace.name = "Custom";
 	customFace.indices = neutralFace.indices;
+	customFace.initialScaleVector = glm::vec3(0.2f, 0.2f, 0.2f);
 
 	glGenVertexArrays(1, &faceVAO_positions);
 
@@ -527,7 +562,15 @@ void createObjects()
 		GL_STATIC_DRAW);
 
 	glutils.linkFaceBuffertoShader(faceVAO_positions);
+}
 
+void createObjects()
+{
+	// Shader Attribute locations
+	glutils.getAttributeLocations();
+
+	createFaces();
+	
 	//CGObject testObject = loadObjObject(testMeshes, true, true, vec3(0.0f, -3.0f, 0.0f), vec3(0.2f, 0.2f, 0.2f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	//sceneObjects[numObjects] = testObject;
 	//numObjects++;
@@ -542,37 +585,33 @@ void createObjects()
 	vector<objl::Mesh> cubeMeshes = loadMeshes(cubeFileName);
 	CGObject cubeObject = loadObjObject(cubeMeshes, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(1.0f, 1.0f, 1.0f), vec3(1.0f, 1.0f, 1.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = cubeObject;
-	numObjects++;
+	numObjects++; */
+
+	n_vbovertices = 0;
+	n_ibovertices = 0;
 
 	const char* sphereFileName = "../Assignment1/meshes/Sphere/sphere.obj";
 	vector<objl::Mesh> sphereMeshes = loadMeshes(sphereFileName);
 	CGObject sphereObject = loadObjObject(sphereMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
 	sceneObjects[numObjects] = sphereObject;
-	sphereObjectIndex = numObjects;
-	numObjects++;*/
+	selectedMarkerIndex = numObjects;
+	numObjects++;
 
-	/*glutils.createVBO(n_vbovertices);
+	glutils.createVBO(n_vbovertices);
 
-	glutils.createIBO(n_ibovertices);*/
-
-	/*for (int i = 0; i < fileList.size(); i++) {
-		addToObjectBuffer(&sceneObjects[i]);
-	}*/
-
+	glutils.createIBO(n_ibovertices);
+		
 	//addToObjectBuffer(&testObject);
 	//addToObjectBuffer(&boyObject);
-	/*addToObjectBuffer(&cubeObject);
-	addToObjectBuffer(&sphereObject);*/
-
-
-	/*for (int i = 0; i < fileList.size(); i++) {
-		addToIndexBuffer(&sceneObjects[i]);
-	}*/
+	/*addToObjectBuffer(&cubeObject);*/
+	addToObjectBuffer(&sphereObject);
 
 	//addToIndexBuffer(&testObject);
 	//addToIndexBuffer(&boyObject);
 	//addToIndexBuffer(&cubeObject);
-	//addToIndexBuffer(&sphereObject);
+	addToIndexBuffer(&sphereObject);
+
+	glutils.linkCurrentBuffertoShader(sphereObject.VAOs[0], sphereObject.startVBO, sphereObject.startIBO);
 }
 
 void init()
@@ -632,7 +671,7 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 
 	glm::mat4 faceTransform = glm::mat4(1);
 	faceTransform = glm::translate(faceTransform, vec3(0.0f, -3.0f, 0.0f));
-	faceTransform = glm::scale(faceTransform, vec3(0.2f, 0.2f, 0.2f));
+	faceTransform = glm::scale(faceTransform, customFace.initialScaleVector);
 
 	glutils.updateUniformVariables(faceTransform, view, projection);
 	customFace.globalTransform = faceTransform; // keep current state	
@@ -711,25 +750,25 @@ void display()
 	glPushMatrix();
 	glLoadIdentity();
 
-	if (vertexSelected && selectedSceneObject != sphereObjectIndex)
+	if (vertexSelected)
 	{
-		sceneObjects[sphereObjectIndex].position = vec3(sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.X,
-			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Y,
-			sceneObjects[selectedSceneObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position.Z);
-		sceneObjects[sphereObjectIndex].Parent = &sceneObjects[selectedSceneObject];
+		sceneObjects[selectedMarkerIndex].position = vec3(customFace.vpositions[selectedVertexIndex * 3],
+			customFace.vpositions[selectedVertexIndex * 3 + 1],
+			customFace.vpositions[selectedVertexIndex * 3 + 2]);
+		//sceneObjects[selectedMarkerIndex].Parent = &sceneObjects[selectedMarkerObject];
 
 		// perform scaling opposite to parent
-		sceneObjects[sphereObjectIndex].initialScaleVector = vec3(0.4f / sceneObjects[selectedSceneObject].initialScaleVector.x,
-			0.4f / sceneObjects[selectedSceneObject].initialScaleVector.y,
-			0.4f / sceneObjects[selectedSceneObject].initialScaleVector.z);
+		sceneObjects[selectedMarkerIndex].initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
+			0.2f / customFace.initialScaleVector.y,
+			0.2f / customFace.initialScaleVector.z);
 
-		mat4 globalCGObjectTransform = sceneObjects[sphereObjectIndex].createTransform();  //sphere
+		mat4 globalCGObjectTransform = customFace.globalTransform * sceneObjects[selectedMarkerIndex].createTransform();  //sphere
 
 		glutils.updateUniformVariables(globalCGObjectTransform);
-		//sceneObjects[sphereObjectIndex].globalTransform = globalCGObjectTransform; // keep current state		
+		sceneObjects[selectedMarkerIndex].globalTransform = globalCGObjectTransform; // keep current state		
 
-		glUniform3f(glutils.objectColorLoc, sceneObjects[sphereObjectIndex].color.r, sceneObjects[sphereObjectIndex].color.g, sceneObjects[sphereObjectIndex].color.b);
-		sceneObjects[sphereObjectIndex].Draw(glutils);
+		glUniform3f(glutils.objectColorLoc, sceneObjects[selectedMarkerIndex].color.r, sceneObjects[selectedMarkerIndex].color.g, sceneObjects[selectedMarkerIndex].color.b);
+		sceneObjects[selectedMarkerIndex].Draw(glutils);
 	}
 
 	glPopMatrix();
@@ -778,13 +817,13 @@ int main(void)
 	TwDefine(" GLOBAL Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
 	
 	// Add 'time' to 'bar': it is a read-only (RO) variable of type TW_TYPE_DOUBLE, with 1 precision digit
-	TwAddVarRO(bar, "time", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
+	TwAddVarRO(bar, "Vertex selected", TW_TYPE_BOOLCPP, &vertexSelected, " label='Vertex selected' precision=1 help='Indicates if vertex is selected.' ");
 
 	//TwAddVarRO(bar, "selected Scene Object", TW_TYPE_INT32, &selectedSceneObject, " label='Selected scene object' precision=0 help='Index of the selected object.' ");
 
 	//TwAddVarRO(bar, "selected Mesh index", TW_TYPE_INT32, &selectedObjectMesh, " label='Selected mesh index' precision=0 help='Index of the selected mesh.' ");
 
-	/*TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
+	TwAddVarRO(bar, "selected Vertex index", TW_TYPE_INT32, &selectedVertexIndex, " label='Selected vertex index' precision=0 help='Index of the selected vertex.' ");
 
 	TwAddVarRO(bar, "selected - posX", TW_TYPE_FLOAT, &tw_posX,
 		" label='PosX - local' precision=2 help='local X-coord of the selected vertex.' ");
@@ -799,7 +838,10 @@ int main(void)
 	TwAddVarRO(bar, "selected - posY - world", TW_TYPE_FLOAT, &tw_posY_world,
 		" label='PosY - world' precision=2 help='World Y-coord of the selected vertex.' ");
 	TwAddVarRO(bar, "selected - posZ - world", TW_TYPE_FLOAT, &tw_posZ_world,
-		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");*/
+		" label='PosZ - world' precision=2 help='World Z-coord of the selected vertex.' ");
+
+	TwAddButton(bar, "SetConstraint", SetConstraintCallback, &sceneObjects, " label='Set Constraint' ");
+	TwAddButton(bar, "RemoveConstraint", RemoveConstraintCallback, &sceneObjects, " label='Remove Constraint' ");
 
 	TwAddSeparator(bar, "", NULL);
 
