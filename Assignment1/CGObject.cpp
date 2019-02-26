@@ -158,7 +158,7 @@ namespace Assignment1
 			std::vector <GLuint> newIndices = std::vector <GLuint>();
 			objl::Mesh new_mesh = objl::Mesh(newVertices, newIndices);
 
-			// For each input vertex
+			// For each input index
 			for (unsigned int i = 0; i < curr_mesh.Indices.size(); i++) {
 
 				// Try to find a similar vertex in out_XXXX

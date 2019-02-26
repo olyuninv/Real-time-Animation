@@ -40,7 +40,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 5
+#define NUM_BLENDSHAPES 24
 #define ANIM_LINES 250
 
 using namespace glm;
@@ -64,10 +64,7 @@ size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
 // variables
 TwBar *bar;         // Pointer to a tweak bar
 
-//const unsigned int NUM_BLENDSHAPES = 2;
-//const unsigned int ANIM_LINES = 250;
-
-bool usingLowRes = true;
+bool usingLowRes = false;
 bool playAnimation = false;
 int animationStage = 0;
 double animationStartTime = 0;
@@ -109,8 +106,8 @@ float farclip = 100.0f;
 
 // camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -6.0f);
-glm::vec3 cameraUp = glm::vec3(0.0f, 3.0f, 0.0f);
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
 GLuint VAOs[MAX_OBJECTS];
 int numVAOs = 0;
@@ -121,7 +118,9 @@ int n_vbovertices = 0;
 int n_ibovertices = 0;
 
 //lighting position
-glm::vec3 lightPos(1.0f, 3.0f, 2.0f);
+glm::vec3 lightPos(1.0f, 2.0f, 4.0f);
+
+bool lbutton_down = false;
 
 // Selected vertex
 bool vertexSelected = false;
@@ -129,7 +128,7 @@ int selectedVertexIndex = -1;
 
 // use screenObjects for storing markers
 bool markerSelected = false;  // if green marker clicked
-int selectedMarkerIndex = 0;
+int selectedMarkerIndex = -1;
 
 //TW_only
 float tw_posX = 0.0f;
@@ -138,6 +137,8 @@ float tw_posZ = 0.0f;
 float tw_posX_world = 0.0f;
 float tw_posY_world = 0.0f;
 float tw_posZ_world = 0.0f;
+bool allowDrag = false;
+
 
 Face neutralFace;
 Face customFace;
@@ -165,7 +166,7 @@ void TW_CALL PlayAnimationCallback(void *clientData)
 }
 
 void TW_CALL StopAnimationCallback(void *clientData)
-{	
+{
 	playAnimation = false;
 	animationStage = 0;
 
@@ -179,14 +180,14 @@ void TW_CALL SetConstraintCallback(void *clientData)
 	vector<CGObject> *selectedObject = (static_cast<vector<CGObject> *>(clientData));
 
 	// only set constraint when vertex picker selected
-	if (markerSelected && selectedMarkerIndex == 0)  
+	if (markerSelected && selectedMarkerIndex == 0)
 	{
 		constraintVertexIndices.push_back(selectedVertexIndex);
 
 		// create new sceneObject - marker		
 		CGObject sphereObject = CGObject();
 		sphereObject.Meshes = (*selectedObject)[0].Meshes;
-		sphereObject.initialTranslateVector = vec3(0.0,0.0,0.0); // this is reset at each draw		
+		sphereObject.initialTranslateVector = vec3(0.0, 0.0, 0.0); // this is reset at each draw		
 		sphereObject.initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
 			0.2f / customFace.initialScaleVector.y,
 			0.2f / customFace.initialScaleVector.z);
@@ -236,144 +237,217 @@ void GLFWCALL WindowSizeCB(int width, int height)
 	TwWindowSize(width, height);
 }
 
+void GLFWCALL mouse_pos_callback(int mouseX, int mouseY)
+{
+	if (!TwEventMousePosGLFW(mouseX, mouseY))
+	{
+		if (lbutton_down && allowDrag)
+		{
+			// drag marker
+			// set to intersection with z-plane
+			float x = (2.0f * mouseX) / SCR_WIDTH - 1.0f;
+			float y = 1.0f - (2.0f * mouseY) / SCR_HEIGHT;
+			float z = 1.0f;
+
+			vec3 ray_nds = vec3(x, y, z);
+
+			vec4 ray_clip = vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+			vec4 ray_eye = inverse(projection) * ray_clip;
+			ray_eye = vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+			vec4 temp = (inverse(view) * ray_eye);
+
+			vec3 ray_wor = vec3(temp.x, temp.y, temp.z);
+			// don't forget to normalise the vector at some point
+			ray_wor = glm::normalize(ray_wor);
+
+			glm::vec3 N = glm::vec3(0.0, 0.0, 1.0);
+			glm::vec4 p1 = customFace.globalTransform * glm::vec4(0.0, 0.0, constraintObjects[0].position.z, 0.0);
+
+			auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
+			glm::vec3 intersectionPoint = cameraPos + t * ray_wor;
+
+			constraintObjects[0].position = intersectionPoint;
+
+		}
+	}
+}
+
 void GLFWCALL mouse_button_callback(int button, int action)
 {
 	if (!TwEventMouseButtonGLFW(button, action))   // Send event to AntTweakBar
 	{
 		if (!playAnimation)
 		{
-			if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+			if (button == GLFW_MOUSE_BUTTON_LEFT)
 			{
-				int mouse_x, mouse_y;
-				bool foundIntersection = false;
-				bool foundIntersectionWithMarker = false;
-
-				//getting cursor position
-				glfwGetMousePos(&mouse_x, &mouse_y);
-
-				float x = (2.0f * mouse_x) / SCR_WIDTH - 1.0f;
-				float y = 1.0f - (2.0f * mouse_y) / SCR_HEIGHT;
-				float z = 1.0f;
-
-				vec3 ray_nds = vec3(x, y, z);
-
-				vec4 ray_clip = vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
-
-				vec4 ray_eye = inverse(projection) * ray_clip;
-				ray_eye = vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
-
-				vec4 temp = (inverse(view) * ray_eye);
-
-				vec3 ray_wor = vec3(temp.x, temp.y, temp.z);
-				// don't forget to normalise the vector at some point
-				ray_wor = glm::normalize(ray_wor);
-
-				// Find the other end of the ray (at far clip plane)
-				auto farpoint = cameraPos + ray_wor * farclip;
-
-				// Find closest intersection point
-				float zIntersection = farclip;
-				vec3 intersectionPoint;
-
-				objl::Mesh mesh;
-
-				// LOOK for intersection with marker
-
-				for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
+				if (GLFW_PRESS == action)
 				{
-					for (int meshIndex = 0; meshIndex < constraintObjects[sceneIndex].Meshes.size(); meshIndex++)
+					lbutton_down = true;
+				}
+				else if (GLFW_RELEASE == action)
+				{
+					lbutton_down = false;
+					allowDrag = false;
+				}
+
+				if (lbutton_down)
+				{
+					int mouse_x, mouse_y;
+
+					//getting cursor position
+					glfwGetMousePos(&mouse_x, &mouse_y);
+
+					bool foundIntersection = false;
+					bool foundIntersectionWithMarker = false;
+
+					float x = (2.0f * mouse_x) / SCR_WIDTH - 1.0f;
+					float y = 1.0f - (2.0f * mouse_y) / SCR_HEIGHT;
+					float z = 1.0f;
+
+					vec3 ray_nds = vec3(x, y, z);
+
+					vec4 ray_clip = vec4(ray_nds.x, ray_nds.y, -1.0, 1.0);
+
+					vec4 ray_eye = inverse(projection) * ray_clip;
+					ray_eye = vec4(ray_eye.x, ray_eye.y, -1.0, 0.0);
+
+					vec4 temp = (inverse(view) * ray_eye);
+
+					vec3 ray_wor = vec3(temp.x, temp.y, temp.z);
+					ray_wor = glm::normalize(ray_wor);
+
+					// Find the other end of the ray (at far clip plane)
+					auto farpoint = cameraPos + ray_wor * farclip;
+
+					// Find closest intersection point
+					float zIntersection = farclip;
+					vec3 intersectionPoint;
+
+					objl::Mesh mesh;
+
+					// LOOK for intersection with marker
+
+					for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
 					{
-						// Find intersection with the fragment
-						mesh = constraintObjects[sceneIndex].Meshes[meshIndex];
+						for (int meshIndex = 0; meshIndex < constraintObjects[sceneIndex].Meshes.size(); meshIndex++)
+						{
+							// Find intersection with the fragment
+							mesh = constraintObjects[sceneIndex].Meshes[meshIndex];
 
-						for (int i = 0; i < mesh.Indices.size(); i += 3) {
-							// Get the points in World co-ord
+							for (int i = 0; i < mesh.Indices.size(); i += 3) {
+								// Get the points in World co-ord
 
-							vec4 p1 = constraintObjects[sceneIndex].globalTransform *
-								vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
-									mesh.Vertices[mesh.Indices[i]].Position.Y,
-									mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
-							vec4 p2 = constraintObjects[sceneIndex].globalTransform *
-								vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
-									mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
-									mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
-							vec4 p3 = constraintObjects[sceneIndex].globalTransform*
-								vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
-									mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
-									mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
+								vec4 p1 = constraintObjects[sceneIndex].globalTransform *
+									vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
+										mesh.Vertices[mesh.Indices[i]].Position.Y,
+										mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
+								vec4 p2 = constraintObjects[sceneIndex].globalTransform *
+									vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
+										mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
+										mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
+								vec4 p3 = constraintObjects[sceneIndex].globalTransform*
+									vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
+										mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
+										mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
 
-							float volume1 = Geometry::signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
-							float volume2 = Geometry::signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
+								float volume1 = Geometry::signedVolume(cameraPos, vec3(p1), vec3(p2), vec3(p3));
+								float volume2 = Geometry::signedVolume(farpoint, vec3(p1), vec3(p2), vec3(p3));
 
-							if (!Geometry::sameSignVolumes(volume1, volume2))
-							{
-								float volume3 = Geometry::signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
-								float volume4 = Geometry::signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
-								float volume5 = Geometry::signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
-
-								if (Geometry::sameSignVolumes(volume3, volume4, volume5))
+								if (!Geometry::sameSignVolumes(volume1, volume2))
 								{
-									// Find intersection point
+									float volume3 = Geometry::signedVolume(cameraPos, farpoint, vec3(p1), vec3(p2));
+									float volume4 = Geometry::signedVolume(cameraPos, farpoint, vec3(p2), vec3(p3));
+									float volume5 = Geometry::signedVolume(cameraPos, farpoint, vec3(p3), vec3(p1));
 
-									// Normal to the triangle
-									auto N = cross(vec3(p2) - vec3(p1), vec3(p3) - vec3(p1));
-
-									// distance to intersection on the line:
-									//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
-									auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
-
-									if (t < zIntersection)
+									if (Geometry::sameSignVolumes(volume3, volume4, volume5))
 									{
-										// Found a closer intersection point
-										zIntersection = t;
-										
-										// no need to calculate exact vertex
-										foundIntersection = true;
-										markerSelected = true;
-																				
-										selectedMarkerIndex = sceneIndex;  // this will be the marker that we move										
+										// Intersection found
+
+										// Normal to the triangle
+										auto N = cross(vec3(p2) - vec3(p1), vec3(p3) - vec3(p1));
+
+										// distance to intersection on the line:
+										//auto t = -dot(cameraPos, N - vec3(p1)) / dot(cameraPos, farpoint - cameraPos); //ray_wor);
+										auto t = -(dot(N, cameraPos) - dot(N, vec3(p1))) / dot(N, ray_wor);
+
+										if (t < zIntersection)
+										{
+											// Found a closer intersection point
+											zIntersection = t;
+
+											// no need to calculate exact vertex
+											foundIntersection = true;
+											markerSelected = true;
+
+											selectedMarkerIndex = sceneIndex;  // this will be the marker that we move			
+
+											if (sceneIndex == 0)
+											{
+												// selected Marker - allow to drag
+												allowDrag = true;
+											}
+										}
 									}
 								}
 							}
 						}
 					}
-				}
 
-				// LOOK for intersection with face
-				if (!foundIntersection)
-				{
-					// Look for intersection with the face
-					int intersectingVertexIndex = -1;
-					glm::vec3 pointWorld;
-					foundIntersection = customFace.findIntersectingVertex(ray_wor, cameraPos, farclip, intersectingVertexIndex, pointWorld);
-
-					if (foundIntersection)
+					if (!foundIntersection)
 					{
-						vertexSelected = true;
-						selectedVertexIndex = intersectingVertexIndex;
-
-						tw_posX = customFace.vpositions[selectedVertexIndex * 3];
-						tw_posY = customFace.vpositions[selectedVertexIndex * 3 + 1];
-						tw_posZ = customFace.vpositions[selectedVertexIndex * 3 + 2];
-
-						tw_posX_world = pointWorld.x;
-						tw_posY_world = pointWorld.y;
-						tw_posZ_world = pointWorld.z;
-
+						//clear marker selection
+						selectedMarkerIndex = -1;
 					}
-				}
 
-				if (!foundIntersection)
-				{
-					vertexSelected = false;
-					selectedVertexIndex = -1;
-					tw_posX = 0.0;
-					tw_posY = 0.0;
-					tw_posZ = 0.0;
+					// LOOK for intersection with face
+					if (!foundIntersection)
+					{
+						// Look for intersection with the face
+						int intersectingVertexIndex = -1;
+						glm::vec3 pointWorld;
+						foundIntersection = customFace.findIntersectingVertex(ray_wor, cameraPos, farclip, intersectingVertexIndex, pointWorld);
 
-					tw_posX_world = 0.0;
-					tw_posY_world = 0.0;
-					tw_posZ_world = 0.0;
+						if (foundIntersection)
+						{
+							vertexSelected = true;
+							selectedVertexIndex = intersectingVertexIndex;
+							selectedMarkerIndex = 0;
+
+							tw_posX = customFace.vpositions[selectedVertexIndex * 3];
+							tw_posY = customFace.vpositions[selectedVertexIndex * 3 + 1];
+							tw_posZ = customFace.vpositions[selectedVertexIndex * 3 + 2];
+
+							tw_posX_world = pointWorld.x;
+							tw_posY_world = pointWorld.y;
+							tw_posZ_world = pointWorld.z;
+
+						}
+					}
+
+					if (!foundIntersection)
+					{
+						vertexSelected = false;
+						selectedVertexIndex = -1;
+						tw_posX = 0.0;
+						tw_posY = 0.0;
+						tw_posZ = 0.0;
+
+						tw_posX_world = 0.0;
+						tw_posY_world = 0.0;
+						tw_posZ_world = 0.0;
+					}
+
+					//if (lbutton_down && allowDrag)
+					//{
+					//	// drag marker
+					//	// set to intersection with z-plane
+					//	int s = 3;
+					//	//constraintObjects[0].position.z
+					//	//constraintObjects[0].position = 
+
+					//}
 				}
 			}
 		}
@@ -399,7 +473,6 @@ void GLFWCALL key_callback(int button, int action)
 			cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
 	}
 }
-
 
 void addToObjectBuffer(Assignment1::CGObject *cg_object)
 {
@@ -555,7 +628,7 @@ void createFaces()
 	float* customPositions = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
 	float* customNormals = (float *)std::malloc(numberOfVertices * 3 * sizeof(float));
 	blendshape::calculateFace(neutralFace, NUM_BLENDSHAPES, blendshapes, weights, customPositions, customNormals);
-		
+
 	//blendshape::recalculateNormals(neutralFace.indices, numberOfVertices, customPositions, customNormals);
 
 	// Generate the only face to be displayed - from neutral for now
@@ -636,10 +709,10 @@ void createObjects()
 	sphereObject.initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
 		0.2f / customFace.initialScaleVector.y,
 		0.2f / customFace.initialScaleVector.z);
-	
+
 	constraintObjects.push_back(sphereObject);
-	
-	selectedMarkerIndex = numObjects;
+
+	//selectedMarkerIndex = numObjects;
 	numObjects++;
 	constraintVertexIndices.push_back(-1); //hack - so that constraints and sceneobjects have the same index
 
@@ -675,7 +748,7 @@ void readAnimationFile(string file)
 
 			myReadFile >> output;
 
-			float d2 = strtod(output, NULL);			
+			float d2 = strtod(output, NULL);
 			animation_weights[lineNumber][weightIndex] = d2;
 			weightIndex++;
 
@@ -771,6 +844,12 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 
 void display()
 {
+	if (usingLowRes)
+	{
+		lightPos.z = 1.0;
+
+	}
+
 	// render
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -791,7 +870,7 @@ void display()
 			{
 				weights[k] = animation_weights[animationStage][k];
 			}
-			
+
 			animationStage++;
 		}
 
@@ -801,7 +880,7 @@ void display()
 			animationStage = 0;
 			playAnimation = false;
 			resetWeights(weights);
-		}		
+		}
 	}
 
 	// Update projection 
@@ -832,7 +911,9 @@ void display()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
+		
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
+	
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
 
 	drawFace(projection, view);
@@ -846,11 +927,28 @@ void display()
 		// draw selected vertex = always tied to selected vertex index
 		if (vertexSelected)
 		{
-			constraintObjects[0].position = vec3(customFace.vpositions[selectedVertexIndex * 3],
-				customFace.vpositions[selectedVertexIndex * 3 + 1],
-				customFace.vpositions[selectedVertexIndex * 3 + 2]);			
-			mat4 globalCGObjectTransform = customFace.globalTransform * constraintObjects[0].createTransform();  //sphere
+			mat4 globalCGObjectTransform;
 
+			if (!allowDrag)
+			{
+				constraintObjects[0].position = vec3(customFace.vpositions[selectedVertexIndex * 3],
+					customFace.vpositions[selectedVertexIndex * 3 + 1],
+					customFace.vpositions[selectedVertexIndex * 3 + 2]);
+				globalCGObjectTransform = customFace.globalTransform * constraintObjects[0].createTransform();  //sphere	
+			}			
+			else
+			{
+				mat4 localTransform = mat4(1.0);
+				localTransform = glm::translate(localTransform, constraintObjects[0].position);
+				/*localTransform = glm::scale(localTransform, glm::vec3(0.2f / customFace.initialScaleVector.x,
+					0.2f / customFace.initialScaleVector.y,
+					0.2f / customFace.initialScaleVector.z));
+				*/
+				localTransform = glm::scale(localTransform, vec3(0.2f, 0.2f, 0.2f));
+				globalCGObjectTransform =  localTransform; //customFace.globalTransform *
+
+			}
+			
 			glutils.updateUniformVariables(globalCGObjectTransform);
 			constraintObjects[0].globalTransform = globalCGObjectTransform; // keep current state		
 
@@ -923,7 +1021,7 @@ int main(void)
 	bar = TwNewBar("Blendshapes");
 
 	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" GLOBAL Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
+	TwDefine(" Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
 
 	TwAddButton(bar, "Reset", ResetCallback, weights, " label='Reset' ");
 
@@ -1010,7 +1108,7 @@ int main(void)
 	// - Directly redirect GLFW mouse button events to AntTweakBar
 	glfwSetMouseButtonCallback(mouse_button_callback);
 	// - Directly redirect GLFW mouse position events to AntTweakBar
-	glfwSetMousePosCallback((GLFWmouseposfun)TwEventMousePosGLFW);
+	glfwSetMousePosCallback(mouse_pos_callback); //	(GLFWmouseposfun)TwEventMousePosGLFW)
 	// - Directly redirect GLFW mouse wheel events to AntTweakBar
 	glfwSetMouseWheelCallback((GLFWmousewheelfun)TwEventMouseWheelGLFW);
 	// - Directly redirect GLFW key events to AntTweakBar
