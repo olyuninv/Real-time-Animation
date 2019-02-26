@@ -40,7 +40,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 24
+#define NUM_BLENDSHAPES 5
 #define ANIM_LINES 250
 
 using namespace glm;
@@ -67,7 +67,7 @@ TwBar *bar;         // Pointer to a tweak bar
 //const unsigned int NUM_BLENDSHAPES = 2;
 //const unsigned int ANIM_LINES = 250;
 
-bool usingLowRes = false;
+bool usingLowRes = true;
 bool playAnimation = false;
 int animationStage = 0;
 double animationStartTime = 0;
@@ -82,13 +82,13 @@ double speed = 0.3; // Model rotation speed
 glm::mat4 projection;
 glm::mat4 view;
 
-CGObject sceneObjects[MAX_OBJECTS];
+//CGObject sceneObjects[MAX_OBJECTS];
 int numObjects = 0;
 
 Face blendshapes[NUM_BLENDSHAPES];
 int numBlendshapes = 0;
 
-//vector<CGObject> constraintObjects;
+vector<CGObject> constraintObjects;
 
 opengl_utils glutils;
 
@@ -121,16 +121,15 @@ int n_vbovertices = 0;
 int n_ibovertices = 0;
 
 //lighting position
-glm::vec3 lightPos(3.0f, 3.0f, 3.0f);
+glm::vec3 lightPos(1.0f, 3.0f, 2.0f);
 
 // Selected vertex
 bool vertexSelected = false;
-bool markerSelected = false;
-
-int selectedMarkerObject = -1;
-int selectedMarkerIndex = 0;
-int selectedObjectMesh = -1;
 int selectedVertexIndex = -1;
+
+// use screenObjects for storing markers
+bool markerSelected = false;  // if green marker clicked
+int selectedMarkerIndex = 0;
 
 //TW_only
 float tw_posX = 0.0f;
@@ -143,7 +142,7 @@ float tw_posZ_world = 0.0f;
 Face neutralFace;
 Face customFace;
 
-
+vector<int> constraintVertexIndices;
 float* weights = (float *)std::malloc(NUM_BLENDSHAPES * sizeof(float));
 float animation_weights[ANIM_LINES][24]; //[250][24];
 
@@ -177,15 +176,47 @@ void TW_CALL StopAnimationCallback(void *clientData)
 
 void TW_CALL SetConstraintCallback(void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+	vector<CGObject> *selectedObject = (static_cast<vector<CGObject> *>(clientData));
 
+	// only set constraint when vertex picker selected
+	if (markerSelected && selectedMarkerIndex == 0)  
+	{
+		constraintVertexIndices.push_back(selectedVertexIndex);
+
+		// create new sceneObject - marker		
+		CGObject sphereObject = CGObject();
+		sphereObject.Meshes = (*selectedObject)[0].Meshes;
+		sphereObject.initialTranslateVector = vec3(0.0,0.0,0.0); // this is reset at each draw		
+		sphereObject.initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
+			0.2f / customFace.initialScaleVector.y,
+			0.2f / customFace.initialScaleVector.z);
+
+		sphereObject.color = glm::vec3(0.0, 0.0, 1.0);
+		sphereObject.startVBO = (*selectedObject)[0].startVBO;
+		sphereObject.startIBO = (*selectedObject)[0].startIBO;
+
+		sphereObject.VAOs = std::vector<GLuint>();
+		sphereObject.VAOs.push_back((*selectedObject)[0].VAOs[0]);
+
+		selectedObject->push_back(sphereObject);
+		selectedMarkerIndex = numObjects;
+
+		numObjects++;
+	}
 
 }
 
 void TW_CALL RemoveConstraintCallback(void *clientData)
 {
-	CGObject *selectedObject = &(static_cast<CGObject *>(clientData)[1]);
+	vector<CGObject> *selectedObject = (static_cast<vector<CGObject> *>(clientData));
 
+	if (markerSelected && selectedMarkerIndex != 0)
+	{
+		// only remove constraint when constraint selected
+		constraintVertexIndices.erase(constraintVertexIndices.begin() + selectedMarkerIndex);
+		(*selectedObject).erase((*selectedObject).begin() + selectedMarkerIndex);
+		numObjects--;
+	}
 
 }
 
@@ -215,6 +246,7 @@ void GLFWCALL mouse_button_callback(int button, int action)
 			{
 				int mouse_x, mouse_y;
 				bool foundIntersection = false;
+				bool foundIntersectionWithMarker = false;
 
 				//getting cursor position
 				glfwGetMousePos(&mouse_x, &mouse_y);
@@ -245,25 +277,27 @@ void GLFWCALL mouse_button_callback(int button, int action)
 
 				objl::Mesh mesh;
 
+				// LOOK for intersection with marker
+
 				for (int sceneIndex = 0; sceneIndex < numObjects; sceneIndex++)
 				{
-					for (int meshIndex = 0; meshIndex < sceneObjects[sceneIndex].Meshes.size(); meshIndex++)
+					for (int meshIndex = 0; meshIndex < constraintObjects[sceneIndex].Meshes.size(); meshIndex++)
 					{
 						// Find intersection with the fragment
-						mesh = sceneObjects[sceneIndex].Meshes[meshIndex];
+						mesh = constraintObjects[sceneIndex].Meshes[meshIndex];
 
 						for (int i = 0; i < mesh.Indices.size(); i += 3) {
 							// Get the points in World co-ord
 
-							vec4 p1 = sceneObjects[sceneIndex].globalTransform *
+							vec4 p1 = constraintObjects[sceneIndex].globalTransform *
 								vec4(mesh.Vertices[mesh.Indices[i]].Position.X,
 									mesh.Vertices[mesh.Indices[i]].Position.Y,
 									mesh.Vertices[mesh.Indices[i]].Position.Z, 1.0f);
-							vec4 p2 = sceneObjects[sceneIndex].globalTransform *
+							vec4 p2 = constraintObjects[sceneIndex].globalTransform *
 								vec4(mesh.Vertices[mesh.Indices[i + 1]].Position.X,
 									mesh.Vertices[mesh.Indices[i + 1]].Position.Y,
 									mesh.Vertices[mesh.Indices[i + 1]].Position.Z, 1.0f);
-							vec4 p3 = sceneObjects[sceneIndex].globalTransform*
+							vec4 p3 = constraintObjects[sceneIndex].globalTransform*
 								vec4(mesh.Vertices[mesh.Indices[i + 2]].Position.X,
 									mesh.Vertices[mesh.Indices[i + 2]].Position.Y,
 									mesh.Vertices[mesh.Indices[i + 2]].Position.Z, 1.0f);
@@ -292,45 +326,12 @@ void GLFWCALL mouse_button_callback(int button, int action)
 									{
 										// Found a closer intersection point
 										zIntersection = t;
-										intersectionPoint = cameraPos + t * ray_wor;
-
-										// Find the closest vertex
-										int indexOfClosestPoint = Geometry::closestPoint(intersectionPoint, vec3(p1), vec3(p2), vec3(p3));
-
-										// Set selected vertex - this may be overwritten by a closer point later on
+										
+										// no need to calculate exact vertex
 										foundIntersection = true;
-
-										if (selectedMarkerObject != selectedMarkerIndex)
-										{
-											vertexSelected = true;
-											selectedMarkerObject = sceneIndex;
-											selectedObjectMesh = meshIndex;
-											selectedVertexIndex = mesh.Indices[i + indexOfClosestPoint - 1];
-
-											auto selectedVertexLocal = sceneObjects[selectedMarkerObject].Meshes[selectedObjectMesh].Vertices[selectedVertexIndex].Position;
-											tw_posX = selectedVertexLocal.X;
-											tw_posY = selectedVertexLocal.Y;
-											tw_posZ = selectedVertexLocal.Z;
-
-											if (indexOfClosestPoint == 1)
-											{
-												tw_posX_world = p1.x;
-												tw_posY_world = p1.y;
-												tw_posZ_world = p1.z;
-											}
-											else if (indexOfClosestPoint = 2)
-											{
-												tw_posX_world = p2.x;
-												tw_posY_world = p2.y;
-												tw_posZ_world = p2.z;
-											}
-											else
-											{
-												tw_posX_world = p3.x;
-												tw_posY_world = p3.y;
-												tw_posZ_world = p3.z;
-											}
-										}
+										markerSelected = true;
+																				
+										selectedMarkerIndex = sceneIndex;  // this will be the marker that we move										
 									}
 								}
 							}
@@ -338,6 +339,7 @@ void GLFWCALL mouse_button_callback(int button, int action)
 					}
 				}
 
+				// LOOK for intersection with face
 				if (!foundIntersection)
 				{
 					// Look for intersection with the face
@@ -348,7 +350,6 @@ void GLFWCALL mouse_button_callback(int button, int action)
 					if (foundIntersection)
 					{
 						vertexSelected = true;
-						selectedObjectMesh = 0;
 						selectedVertexIndex = intersectingVertexIndex;
 
 						tw_posX = customFace.vpositions[selectedVertexIndex * 3];
@@ -632,9 +633,15 @@ void createObjects()
 	const char* sphereFileName = "../Assignment1/meshes/Sphere/sphere.obj";
 	vector<objl::Mesh> sphereMeshes = loadMeshes(sphereFileName);
 	CGObject sphereObject = loadObjObject(sphereMeshes, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
-	sceneObjects[numObjects] = sphereObject;
+	sphereObject.initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
+		0.2f / customFace.initialScaleVector.y,
+		0.2f / customFace.initialScaleVector.z);
+	
+	constraintObjects.push_back(sphereObject);
+	
 	selectedMarkerIndex = numObjects;
 	numObjects++;
+	constraintVertexIndices.push_back(-1); //hack - so that constraints and sceneobjects have the same index
 
 	glutils.createVBO(n_vbovertices);
 
@@ -752,7 +759,7 @@ void drawFace(glm::mat4 projection, glm::mat4 view)
 	glutils.updateUniformVariables(faceTransform, view, projection);
 	customFace.globalTransform = faceTransform; // keep current state	
 
-	glUniform3f(glutils.objectColorLoc, 1.0f, 0.5f, 1.0f);
+	glUniform3f(glutils.objectColorLoc, 1.0f, 0.5f, 0.0f);
 	glDrawElements(GL_TRIANGLES, customFace.indices.size(), GL_UNSIGNED_INT, 0);
 
 	glDisableVertexAttribArray(glutils.loc1);
@@ -778,7 +785,7 @@ void display()
 		// update weights
 		double deltaTime = time - animationStartTime;
 
-		if (deltaTime > 3)
+		if (deltaTime > 4)
 		{
 			for (int k = 0; k < NUM_BLENDSHAPES; k++)
 			{
@@ -830,47 +837,47 @@ void display()
 
 	drawFace(projection, view);
 
-	//// DRAW objects
-	//for (int i = 0; i < numObjects - 1; i++)     // TODO : need to fix this hardcoding
-	//{
-	//	mat4 globalCGObjectTransform = sceneObjects[i].createTransform();
-	//	glutils.updateUniformVariables(globalCGObjectTransform);
-	//	sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
-
-	//	glUniform3f(glutils.objectColorLoc, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
-	//	sceneObjects[i].Draw(glutils);
-	//}
-
-	/*glDisableVertexAttribArray(glutils.loc1);
-	glDisableVertexAttribArray(glutils.loc2);
-	glDisableVertexAttribArray(glutils.loc3);*/
-
 	// DRAW CONSTRAINTS
 	if (!playAnimation)
 	{
 		glPushMatrix();
 		glLoadIdentity();
 
+		// draw selected vertex = always tied to selected vertex index
 		if (vertexSelected)
 		{
-			sceneObjects[selectedMarkerIndex].position = vec3(customFace.vpositions[selectedVertexIndex * 3],
+			constraintObjects[0].position = vec3(customFace.vpositions[selectedVertexIndex * 3],
 				customFace.vpositions[selectedVertexIndex * 3 + 1],
-				customFace.vpositions[selectedVertexIndex * 3 + 2]);
-			//sceneObjects[selectedMarkerIndex].Parent = &sceneObjects[selectedMarkerObject];
-
-			// perform scaling opposite to parent
-			sceneObjects[selectedMarkerIndex].initialScaleVector = vec3(0.2f / customFace.initialScaleVector.x,
-				0.2f / customFace.initialScaleVector.y,
-				0.2f / customFace.initialScaleVector.z);
-
-			mat4 globalCGObjectTransform = customFace.globalTransform * sceneObjects[selectedMarkerIndex].createTransform();  //sphere
+				customFace.vpositions[selectedVertexIndex * 3 + 2]);			
+			mat4 globalCGObjectTransform = customFace.globalTransform * constraintObjects[0].createTransform();  //sphere
 
 			glutils.updateUniformVariables(globalCGObjectTransform);
-			sceneObjects[selectedMarkerIndex].globalTransform = globalCGObjectTransform; // keep current state		
+			constraintObjects[0].globalTransform = globalCGObjectTransform; // keep current state		
 
-			glUniform3f(glutils.objectColorLoc, sceneObjects[selectedMarkerIndex].color.r, sceneObjects[selectedMarkerIndex].color.g, sceneObjects[selectedMarkerIndex].color.b);
-			sceneObjects[selectedMarkerIndex].Draw(glutils);
+			glUniform3f(glutils.objectColorLoc, constraintObjects[0].color.r, constraintObjects[0].color.g, constraintObjects[0].color.b);
+			constraintObjects[0].Draw(glutils);
 		}
+
+		// DRAW constraints - even if no vertex selected
+		for (int i = 1; i < numObjects; i++)
+		{
+			constraintObjects[i].position = vec3(customFace.vpositions[constraintVertexIndices[i] * 3],
+				customFace.vpositions[constraintVertexIndices[i] * 3 + 1],
+				customFace.vpositions[constraintVertexIndices[i] * 3 + 2]);
+			mat4 globalCGObjectTransform = customFace.globalTransform * constraintObjects[i].createTransform();  //sphere
+
+
+			glutils.updateUniformVariables(globalCGObjectTransform);
+			constraintObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
+
+			glUniform3f(glutils.objectColorLoc, constraintObjects[i].color.r, constraintObjects[i].color.g, constraintObjects[i].color.b);
+			constraintObjects[i].Draw(glutils);
+		}
+
+		/*glDisableVertexAttribArray(glutils.loc1);
+		glDisableVertexAttribArray(glutils.loc2);
+		glDisableVertexAttribArray(glutils.loc3);*/
+
 
 		glPopMatrix();
 	}
@@ -949,8 +956,8 @@ int main(void)
 	TwAddVarRO(bar, "selected - posZ - world", TW_TYPE_FLOAT, &tw_posZ_world,
 		" label='PosZ - world' group = 'Vertex Picking' precision=2 help='World Z-coord of the selected vertex.' ");
 
-	TwAddButton(bar, "SetConstraint", SetConstraintCallback, &sceneObjects, " label='Set Constraint' group = 'Vertex Picking' ");
-	TwAddButton(bar, "RemoveConstraint", RemoveConstraintCallback, &sceneObjects, " label='Remove Constraint' group = 'Vertex Picking' ");
+	TwAddButton(bar, "SetConstraint", SetConstraintCallback, &constraintObjects, " label='Set Constraint' group = 'Vertex Picking' ");
+	TwAddButton(bar, "RemoveConstraint", RemoveConstraintCallback, &constraintObjects, " label='Remove Constraint' group = 'Vertex Picking' ");
 
 	TwAddSeparator(bar, "", NULL);
 
