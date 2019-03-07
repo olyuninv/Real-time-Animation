@@ -1,0 +1,127 @@
+#include "CGObject.h"
+
+namespace Assignment3
+{
+	CGObject::CGObject()
+	{
+	}
+
+	CGObject::~CGObject()
+	{
+	}
+
+	void CGObject::Draw(opengl_utils glutils)
+	{
+		int VBOindex = this->startVBO;
+		int IBOindex = this->startIBO;
+		bool hardCodeColor = true;
+
+		for (int i = 0; i < this->Meshes.size(); i++) {
+
+			glutils.linkCurrentBuffertoShader(this->VAOs[i], VBOindex, IBOindex);
+
+			if (hardCodeColor)
+			{
+				glUniform3f(glutils.objectColorLoc, this->color.x, this->color.y, this->color.z);
+			}
+			else
+			{
+				glUniform3f(glutils.objectColorLoc, this->Meshes[i].MeshMaterial.Kd.X, this->Meshes[i].MeshMaterial.Kd.Y, this->Meshes[i].MeshMaterial.Kd.Z);
+			}
+
+			glDrawElements(GL_TRIANGLES, this->Meshes[i].Indices.size(), GL_UNSIGNED_INT, (void*)(IBOindex * sizeof(unsigned int)));
+			VBOindex += Meshes[i].Vertices.size();
+			IBOindex += Meshes[i].Indices.size();
+		}
+	}
+
+	//glm::mat4 yawPitchRollCustom 
+	//(
+	//	float yaw,
+	//	float pitch,
+	//	float roll
+	//)
+	//{
+	//	float tmp_ch = glm::cos(yaw);
+	//	float tmp_sh = glm::sin(yaw);
+	//	float tmp_cp = glm::cos(pitch);
+	//	float tmp_sp = glm::sin(pitch);
+	//	float tmp_cb = glm::cos(roll);
+	//	float tmp_sb = glm::sin(roll);
+
+	//	glm::mat4 Result;
+	//	Result[0][0] = tmp_ch * tmp_cb;
+	//	Result[0][1] = tmp_ch * tmp_sb * tmp_sp - tmp_sh * tmp_cp;
+	//	Result[0][2] = tmp_ch* tmp_sb * tmp_cp + tmp_sh * tmp_sp;
+	//	Result[0][3] = 0.0f;
+	//	Result[1][0] = tmp_sh* tmp_sb;
+	//	Result[1][1] = tmp_sh* tmp_sb*tmp_sp + tmp_ch * tmp_cp;
+	//	Result[1][2] = tmp_sh * tmp_sb * tmp_cp - tmp_ch * tmp_cp;
+	//	Result[1][3] = 0.0f;
+	//	Result[2][0] = -tmp_sb;
+	//	Result[2][1] = tmp_cb* tmp_sp;
+	//	Result[2][2] = tmp_cb * tmp_cp;
+	//	Result[2][3] = 0.0f;
+	//	Result[3][0] = 0.0f;
+	//	Result[3][1] = 0.0f;
+	//	Result[3][2] = 0.0f;
+	//	Result[3][3] = 1.0f;
+	//	return Result;
+	//}
+
+	void CGObject::setInitialRotation(glm::vec3 initialRotationEuler)
+	{
+		this->initialRotateAngleEuler = initialRotationEuler;
+		this->eulerAngles = initialRotationEuler;
+		this->previousEulerAngles = initialRotationEuler;
+		glm::quat initialQuatRotation = glm::quat(this->initialRotateAngleEuler);
+		glm::mat4 rotationMatrix = glm::toMat4(initialQuatRotation);
+
+		this->previousRotationMatrix = glm::mat4(rotationMatrix);
+	}
+
+	glm::mat4 CGObject::createTransform(bool isRotationQuaternion)
+	{
+		glm::mat4 localTransform = glm::mat4(1.0);
+
+		localTransform = glm::translate(localTransform, this->position);
+
+		//glm::mat4 rotationMatrix = glm::EulerAngles(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+
+		glm::mat4 rotationMatrix = glm::mat4(1.0);
+
+		if (isRotationQuaternion)
+		{
+			glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->previousEulerAngles.x,
+				this->eulerAngles.y - this->previousEulerAngles.y,
+				this->eulerAngles.z - this->previousEulerAngles.z);
+
+			glm::quat quaternionRotation = glm::quat(newRotation);
+			rotationMatrix = this->previousRotationMatrix * glm::toMat4(quaternionRotation);
+
+			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			this->previousRotationMatrix = glm::mat4( rotationMatrix);
+
+		}
+		else
+		{
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
+			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
+
+			//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+			rotationMatrix = glm::eulerAngleYZX(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+
+			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+			this->previousRotationMatrix = glm::mat4(rotationMatrix);
+		}
+
+		localTransform = localTransform * rotationMatrix;
+
+		localTransform = glm::scale(localTransform, this->initialScaleVector);
+
+		glm::mat4 parentTransform = this->Parent == nullptr ? glm::mat4(1.0) : this->Parent->globalTransform;
+
+		return parentTransform * localTransform;
+	}
+}
