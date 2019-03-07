@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Cyclic Coordinate Descent in 2D</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="robots" content="index, follow">
+    <meta name="title" content="Cyclic Coordinate Descent in 2D">
+    <meta name="author" content="Ryan Juckett">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Learn how cyclic coordinate descent (CCD) works and writing the algorithm in code.">    
+    <link rel="stylesheet" type="text/css" href="http://www.ryanjuckett.com/themes/monochrome/theme.css">
+    <script type="text/javascript" src="http://www.ryanjuckett.com/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><script type="text/javascript" src="http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shCore.js"></script>
+<script type="text/javascript" src="http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shAutoloader.js"></script>
+<link href="http://www.ryanjuckett.com/SyntaxHighlighter/styles/shCore.css" rel="stylesheet" type="text/css" />
+<link href="http://www.ryanjuckett.com/SyntaxHighlighter/styles/shThemeDefault.css" rel="stylesheet" type="text/css" />
+  </head>
+  <body>
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-6827164-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+    <table id="main_table">
+      <tr>
+        <td colspan="2" style="padding:0">
+          <table id="title_bar">
+            <tr>
+              <td id="title_bar_left">&nbsp;</td>
+              <td id="title_bar_center"><img class="layout" class="layout" id="title" src="http://www.ryanjuckett.com/themes/monochrome/title.gif"/></td>
+              <td id="title_bar_right">&nbsp;</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+      <tr height="100%">
+        <td id="menu">
+          <table id="menu_table">
+            <tr>
+              <td id="menu_top"><a class="menu_item" href="http://www.ryanjuckett.com/index.php?section=home">Home</a><br/>
+<a class="menu_item" href="http://www.ryanjuckett.com/index.php?section=projects">Projects</a><br/>
+<a class="active_menu_item" href="http://www.ryanjuckett.com/index.php?section=programming">Programming</a><br/>
+<a class="menu_item" href="http://www.ryanjuckett.com/resume">Resume</a><br/>
+<a class="menu_item" href="http://www.ryanjuckett.com/contact">Contact</a><br/>
+</td>
+            </tr>
+            <tr>
+              <td id="menu_bottom">&nbsp;</td>
+            </tr>            
+          </table>
+        </td>
+        <td id="content">
+          <table id="content_table">
+            <tr>
+              <td id="content_top_left">&nbsp;</td>
+              <td id="content_top_center">&nbsp;</td>
+              <td id="content_top_right">&nbsp;</td>
+            </tr>
+            <tr>
+              <td id="content_article" colspan="3">
+<h1>Cyclic Coordinate Descent in 2D</h1><div class="date">February 11, 2009</div><p><img style="float: right; margin: 5px;" alt="title" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/title.jpg" width="200" height="130" />When performing <a href="http://en.wikipedia.org/wiki/Inverse_kinematics">inverse kinematics</a> (IK) on a complicated bone chain, it can become too complex for an analytical solution. Cyclic Coordinate Descent (CCD) is&nbsp;an alternative that is both easy to implement and efficient to process. We will discuss the algorithm works at a&nbsp;high level, followed by a two-dimensional example and sample code.</p>
+<p>&nbsp;</p>
+<p>CCD solves the IK problem through&nbsp;<a href="http://en.wikipedia.org/wiki/Optimization_(mathematics)">optimization</a>. Looping&nbsp;through the joints&nbsp;from end to root, we optimize each joint to get the end effector (tip of the final joint) as close to our&nbsp;target as possible. This loop is then repeated until we&nbsp;find a solution or we reach an&nbsp;iteration limit. You can download the <a href="../../projects/rj_demo_ik/">RJ_Demo_IK</a> application and source code to see an interactive implementation.</p>
+<p>&nbsp;</p>
+<p>You might also be interested in the following articles on different IK solvers:</p>
+<ul>
+<li><a href="../analytic-two-bone-ik-in-2d/">Analytic Two-Bone IK in 2D</a></li>
+<li><a href="../constraint-relaxation-ik-in-2d/">Constraint Relaxation&nbsp;IK in 2D</a></li>
+</ul>
+<p>&nbsp;</p>
+&nbsp;&nbsp;
+<h1>Optimizing a joint</h1>
+<p>In math, optimization in the process of finding a value that will minimize or maximize a function. In our case, we want to minimize the distance between the end effector and the target (i.e. minimize&nbsp;\(|\mathbf{e}-\mathbf{t}|\) for end effector, \(\mathbf e\), and target, \(\mathbf t\)).&nbsp;Depending on how our joints behave, different equations will be used to find the optimal solution. For example, one joint might allow for translation while another joint might allow rotation.</p>
+<p>&nbsp;</p>
+<p>For&nbsp;common joint behavior, we can develop an analytic solution to find the optimal value.&nbsp;I am going to walk through&nbsp;solving the optimization problem for rotational joints (the&nbsp;most common&nbsp;joint behavior in an animated character).</p>
+<p>&nbsp;</p>
+<p>As a rotational joint, we can rotate the end effector in a circle about our position (see figure 1). The closest position to the target on our rotational circle is the intersection of the circle and the line segment between the current joint and the target.</p>
+<p>&nbsp;</p>
+<p style="text-align: center;"><img alt="fig_1" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_1.jpg" width="250" height="150" /></p>
+<p style="text-align: center;"><em><span style="font-size: 10pt;">figure 1</span></em></p>
+<p style="text-align: center;">&nbsp;</p>
+<p><em></em></p>
+<p>To move the end effector to its optimal position, we need to rotate&nbsp;the joint&nbsp;by the unknown value \(\alpha\). We know&nbsp;the current joint position, \(\mathbf j\), the current end effector position, \(\mathbf e\), and the target position, \(\mathbf t\). To find \(\alpha\), we need to find the angle that will rotate \(\mathbf e\) around \(\mathbf j\) onto the line \((\mathbf{t} - \mathbf{j})\). This makes&nbsp;\(\alpha\) the signed angle between the vectors \((\mathbf{e} - \mathbf{j})\) and \((\mathbf{t} - \mathbf{j})\) that rotates \((\mathbf{e} - \mathbf{j})\)&nbsp;to \((\mathbf{t} - \mathbf{j})\).</p>
+<p>&nbsp;</p>
+<h2>Solving for cosine&nbsp;</h2>
+<p>The <a href="http://en.wikipedia.org/wiki/Dot_product">dot product</a> can be geometrically interpreted as \(\mathbf{a} \cdot \mathbf{b} = |\mathbf{a}| |\mathbf{b}| \cos \theta\) where \(|\mathbf{a}|\) is the length of vector \(\mathbf{a}\),&nbsp;\(|\mathbf{b}|\) is the length of vector \(\mathbf{b}\),&nbsp;and \(\theta\) is the smaller angle between vector \(\mathbf{a}\) and vector \(\mathbf{b}\). Using this formula, we can solve for the&nbsp;cosine of \(\alpha\).</p>
+<p>&nbsp;</p>
+<p>\((\mathbf{e} - \mathbf{j}) \cdot (\mathbf{t} - \mathbf{j}) = |\mathbf{e} - \mathbf{j}| |\mathbf{t} - \mathbf{j}| \cos \alpha\)</p>
+<p>\(\cos \alpha = \frac{ (\mathbf{e} - \mathbf{j}) \cdot (\mathbf{t} - \mathbf{j})}{|\mathbf{e} - \mathbf{j}| |\mathbf{t} - \mathbf{j}| }\)</p>
+<p>&nbsp;</p>
+<h2>Solving for sine&nbsp;</h2>
+<p>The cosine alone will help us find the magnitude of \(\alpha\), but it won't supply us with the direction of rotation. To find the direction, we need to compute \(\sin \alpha\). The three-dimensional&nbsp;<a href="http://en.wikipedia.org/wiki/Cross_product">cross product</a> can be geometrically interpreted as \(\mathbf{a} \times \mathbf{b} = |\mathbf{a}| |\mathbf{b}| \sin \theta \mathbf{n}\) where \(\mathbf n\) is the unit vector perpendicular to vector \(\mathbf a\) and vector \(\mathbf b\) pointing in the direction defined by the <a href="http://en.wikipedia.org/wiki/Right-hand_rule">right-hand rule</a>, and \(\theta\) is the unsigned smaller angle between vector \(\mathbf{a}\) and vector \(\mathbf{b}\). While \(\theta\) is an unsigned angle, we will be able to get the direction of our rotation based on the direction of \(\mathbf n\)</p>
+<p>&nbsp;</p>
+<p>First, let's expand the cross product of two three-dimensional vectors.</p>
+<p>\(\begin{bmatrix}a_x\\a_y\\a_z\end{bmatrix} \times \begin{bmatrix}b_x\\b_y\\b_z\end{bmatrix} = \begin{bmatrix}a_y b_z - a_z b_y\\a_z b_x - b_z a_x\\a_x b_y - a_y b_x\end{bmatrix}\)</p>
+<p>&nbsp;</p>
+<p>If we interpret our two-dimensional vectors as three-dimensional vectors on the xy-plane, the cross product will&nbsp;result in a three dimensional vector pointing&nbsp;along the z-axis.&nbsp;</p>
+<p>\(\begin{bmatrix}a_x\\a_y\\0\end{bmatrix} \times \begin{bmatrix}b_x\\b_y\\0\end{bmatrix} = \begin{bmatrix}0\\0\\a_x b_y - a_y b_x\end{bmatrix}\)</p>
+<p>&nbsp;</p>
+<p>Looking back at our geometric interpretation of the cross product, \(\mathbf{a} \times \mathbf{b} = |\mathbf{a}| |\mathbf{b}| \sin \theta \mathbf{n}\), the unit vector \(\mathbf n\) must be either the negative or positive z-axis.&nbsp;Combining our expanded cross-product with the geometric interpretation, we get the following relation where \(n_z\) is either -1 or 1.</p>
+<p>\(\begin{bmatrix}0\\0\\a_x b_y - a_y b_x\end{bmatrix} = |\mathbf{a}| |\mathbf{b}| \sin \theta \begin{bmatrix}0\\0\\n_z\end{bmatrix}\)</p>
+<p>&nbsp;</p>
+<p>We can now focus on the z-components of our equation (x and y were zeros).</p>
+<p>\(a_x b_y - a_y b_x = |\mathbf{a}| |\mathbf{b}| \sin \theta n_z\)</p>
+<p>&nbsp;</p>
+<p>The value of \(n_z\) determines if we are rotating in clockwise or counter-clockwise direction. In a right-handed coordinate system where the x-axis points right and the y-axis points up, the z-axis will point forward. According to the right-hand rule, \(\mathbf n\) will be the negative z-axis when we are rotating clockwise and \(\mathbf n\) will be the positive z-axis when we are rotating counter-clockwise.&nbsp;This implies that \(n_z\) is -1 for clockwise rotations and 1 for counter-clockwise rotations.</p>
+<p>&nbsp;</p>
+<p>Because \(\theta\) is the smaller angle between two vectors, it is in the positive range \([0,\pi]\). Positive angles result in counter-clockwise rotations. Negative angles result in clockwise rotations. Given that \(-\sin{x} = \sin (-x)\), when \(n_z\) is -1, \(n_z \sin \theta = -\sin \theta = \sin (-\theta)\). Previously, we concluded that a negative value of \(n_z\) implies a clockwise rotation which in turn implies a negative rotation angle. This will let us define a new signed angle, \(\phi\) that is the directional rotation from vector \(\mathbf a\) to vector \(\mathbf b\).</p>
+<p>&nbsp;</p>
+<p>\(a_x b_y - a_y b_x = |\mathbf{a}| |\mathbf{b}| \sin \theta n_z = |\mathbf{a}| |\mathbf{b}| \sin \phi\)</p>
+<p>\(a_x b_y - a_y b_x =|\mathbf{a}| |\mathbf{b}| \sin \phi\)</p>
+<p>&nbsp;</p>
+<p>Using this equation, we can substitute for \(a\), \(b\), and \(\phi\) to solve for the sine of \(\alpha\).</p>
+<p>&nbsp;</p>
+<p>\((e_x - j_x)(t_y - j_y)-(e_y - j_y) (t_x - j_x) = |\mathbf{e} - \mathbf{j}| |\mathbf{t} - \mathbf{j}| \sin \alpha\)</p>
+<p>\(sin \alpha = \frac {(e_x - j_x)(t_y - j_y)-(e_y - j_y)(t_x - j_x)} {|\mathbf{e} - \mathbf{j}| |\mathbf{t} - \mathbf{j}|}\)</p>
+<p>&nbsp;</p>
+<p>We now have equations for solving the sine and cosine of a signed angle between two vectors. This will let us perform the appropriate rotation for our joint.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>Visualizing CCD</h1>
+<p>To&nbsp;help visualize the algorithm, let's run through a single iteration of CCD on a small kinematic chain of rotational joints.</p>
+<p>&nbsp;</p>
+<div style="text-align: center;">
+<table style="text-align: center;" border="0" cellspacing="0" cellpadding="4">
+<tbody>
+<tr>
+<td style="background-color: #d3d3d3;">Initial kinematic chain orientation.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_2_a" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_2_a.jpg" width="250" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 2a</span></em></p>
+</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td style="background-color: #d3d3d3;">Rotate bone 3 to place end effector as close to target as possible.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_2_b" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_2_b.jpg" width="250" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 2b</span></em></p>
+</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td style="background-color: #d3d3d3;">Rotate bone 2 to place end effector as close to target as possible.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_2_c" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_2_c.jpg" width="250" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 2c</span></em></p>
+</td>
+</tr>
+<tr>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td style="background-color: #d3d3d3;">Rotate bone 1 to place end effector as close to target as possible.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_2_d" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_2_d.jpg" width="250" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 2d</span></em></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>&nbsp;</p>
+<p>After our first loop through the bone chain, we have moved the end effector much closer to the target position. By repeating this process, we will continue to get closer and closer. Once we have reached a tolerable distance from the target position or once we have performed too many iterations (for performance reasons), we can stop looping. If we didn't manage to find a solution on one frame, we can supply the updated joints as the starting CCD values on the next frame (essentially distributing a larger number of iterations over multiple frames).</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>Local Minima</h1>
+<p>Unfortunately, there are some kinks with CCD. From certain initial poses, the algorithm will fail to find the proper solution to a problem. I don't know of any CCD literature that&nbsp;discusses (or really even mentions)&nbsp;this subject, but I will show an example problem. Fortunately, this doesn't often come up in practice and depending on the requirements&nbsp;of your IK&nbsp;simulation and the mobility of your kinematic chain, you may be able to ignore it.</p>
+<p>&nbsp;</p>
+<p>Given a two bone chain where both bones start with no rotation, we can place the target in a position that will lock up CCD at an invalid result. Our initial setup can be seen in figure 3a.&nbsp;</p>
+<div style="text-align: center;">
+<table style="text-align: center;" border="0" cellspacing="0" cellpadding="4">
+<tbody>
+<tr>
+<td style="background-color: #d3d3d3;">Initial orientation.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_3_a" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_3_a.jpg" width="200" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 3a</span></em></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>&nbsp;</p>
+<p>If CCD was able to give us a valid solution, bone<sub>1</sub> would bend away from the target allowing bone<sub>2</sub> to bend towards the target. One possible valid solution is shown in figure 3b.</p>
+<div style="text-align: center;">
+<table style="text-align: center;" border="0" cellspacing="0" cellpadding="4">
+<tbody>
+<tr>
+<td style="background-color: #d3d3d3;">Desired solution&nbsp;orientation.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_3_b" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_3_b.jpg" width="200" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 3b</span></em></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>&nbsp;</p>
+<p>When actually performing the CCD algorithm, we will get stuck at a local minimum (see figure 3c).&nbsp;The first step of CCD will rotate bone<sub>2</sub> to point towards the target. This will result in a rotation of 180 degrees and will get the end effector as close to the target as possible with regards to the mobility of bone<sub>2</sub>. It is now bone<sub>1</sub>'s turn to place the end effector as close to the target as possible.&nbsp;It turns out that&nbsp;bone<sub>1</sub> is already in the optimal position and therefore does nothing. We are now in a situation where both bones are in optimal positions and they will no longer move as we continue&nbsp;to iterate the algorithm.</p>
+<div style="text-align: center;">
+<table style="text-align: center;" border="0" cellspacing="0" cellpadding="4">
+<tbody>
+<tr>
+<td style="background-color: #d3d3d3;">Resulting orientation.</td>
+</tr>
+<tr>
+<td style="text-align: center; border: #d3d3d3 1px solid;">
+<p><img alt="fig_3_c" src="http://www.ryanjuckett.com/programming/cyclic-coordinate-descent-in-2d/fig_3_c.jpg" width="200" height="150" /></p>
+<p><em><span style="font-size: 10pt;">figure 3c</span></em></p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>&nbsp;</p>
+<p>It should be noted that if the joints had rotational constraints (could not spin 180 degrees), we would have avoided this singularity, but adding rotational constraints can lead to a whole new set of local minima.</p>
+<p>&nbsp;</p>
+<p>CCD considers one joint at a time with no real&nbsp;care about how the rest of the joints behave. The only part of the algorithm that even recognizes the joint hierarchy is the requirement that we&nbsp;loop backwards from the end joint to the root joint. It should also be noted that the individual steps of the algorithm aren't aware that they are part of a larger iteration towards a solution. This results in a fairly myopic view of the larger IK problem when optimizing a single joint.</p>
+<p>&nbsp;</p>
+<p>We are computing the joint orientation that will instantly get the end effector to the optimal position for the current joint. If we were a bit less selfish, we could consider the limitations of the other joints when defining what our optimal orientation actually is. This steps a bit away from the pure CCD algorithm which tries to minimize&nbsp;the error from the target position one joint at a time.&nbsp;Is there some new equation we would be minimizing by taking the rest of the hierarchy into account? In the past, I've tried adding some conditions to detect undesired solutions, but am yet to build something robust enough to handle all problem cases while maintaining efficiency.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>Writing the code</h1>
+<p>Now that we've covered the basic building blocks of CCD, we can write an implementation that solves&nbsp;a kinematic chain consisting of any number of rotational joints. The function will perform a single iteration of CCD, by updating a supplied chain of joints. The user can then iteratively resupply the updated values until a valid solution is found, an iteration limit is reached, or the end effector stops updating due to the target being out of range. Check out the <a href="../../projects/rj_demo_ik/">RJ_Demo_IK</a> application for a sample implementation of the code.</p>
+<p>&nbsp;</p>
+<p>These code samples are released under the following license.</p>
+<pre class="brush: csharp">
+/******************************************************************************
+  Copyright (c) 2008-2009 Ryan Juckett
+  http://www.ryanjuckett.com/
+ 
+  This software is provided 'as-is', without any express or implied
+  warranty. In no event will the authors be held liable for any damages
+  arising from the use of this software.
+ 
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+ 
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+ 
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+ 
+  3. This notice may not be removed or altered from any source
+     distribution.
+******************************************************************************/
+</pre>
+<p>&nbsp;</p>
+<p>When working with two dimensional rotations, it is often useful to wrap angles outside of the \([-\pi,\pi]\) range back into the \([-\pi,\pi]\) range. The CCD function makes use of this helper function to do so.</p>
+<pre class="brush: csharp">
+///***************************************************************************************
+/// SimplifyAngle
+/// This function will convert an angle to the equivalent rotation in the range [-pi,pi]
+///***************************************************************************************
+private static double SimplifyAngle(double angle)
+{
+    angle = angle % (2.0 * Math.PI);
+    if( angle &lt; -Math.PI )
+        angle += (2.0 * Math.PI);
+    else if( angle &gt; Math.PI )
+        angle -= (2.0 * Math.PI);
+    return angle;
+}
+</pre>
+<p>&nbsp;</p>
+<p>Internal to the CCD function we&nbsp;store cosine and sine values&nbsp;for each bone as we convert the bones into a world space representation. We can then reuse these angles throughout the function.&nbsp;This structure is used to assist in that process.&nbsp;</p>
+<pre class="brush: csharp">
+///***************************************************************************************
+/// Bone_2D_CCD_World
+/// This class is used internally by the CalcIK_2D_CCD function to represent a bone in
+/// world space.
+///***************************************************************************************
+private class Bone_2D_CCD_World
+{
+    public double x;        // x position in world space
+    public double y;        // y position in world space
+    public double angle;    // angle in world space
+    public double cosAngle; // sine of angle
+    public double sinAngle; // cosine of angle
+};
+</pre>
+<p>&nbsp;</p>
+<p>The user can early out of their iteration loop if the CCD algorithm detected a success state (end effector reached the target) of failure state (end effector was not moved).</p>
+<pre class="brush: csharp">
+///***************************************************************************************
+/// CCDResult
+/// This enum represents the resulting state of a CCD iteration.
+///***************************************************************************************
+public enum CCDResult
+{
+    Success,    // the target was reached
+    Processing, // still trying to reach the target
+    Failure,    // failed to reach the target
+}
+</pre>
+<p>&nbsp;</p>
+<p>&nbsp;To reduce the number of parameters, the following class is used to represent an&nbsp;input bone.</p>
+<pre class="brush: csharp">
+///***************************************************************************************
+/// Bone_2D_CCD
+/// This class is used to supply the CalcIK_2D_CCD function with a bone's representation
+/// relative to its parent in the kinematic chain.
+///***************************************************************************************
+public class Bone_2D_CCD
+{
+    public double x;     // x position in parent space
+    public double y;     // y position in parent space
+    public double angle; // angle in parent space
+};
+</pre>
+<p>&nbsp;</p>
+<p>The following function performs a single iteration of CCD including the singularity test.</p>
+<pre class="brush: csharp">
+///***************************************************************************************
+/// CalcIK_2D_CCD
+/// Given a bone chain located at the origin, this function will perform a single cyclic
+/// coordinate descent (CCD) iteration. This finds a solution of bone angles that places
+/// the final bone in the given chain at a target position. The supplied bone angles are
+/// used to prime the CCD iteration. If a valid solution does not exist, the angles will
+/// move as close to the target as possible. The user should resupply the updated angles 
+/// until a valid solution is found (or until an iteration limit is met).
+///  
+/// returns: CCDResult.Success when a valid solution was found.
+///          CCDResult.Processing when still searching for a valid solution.
+///          CCDResult.Failure when it can get no closer to the target.
+///***************************************************************************************
+public static CCDResult CalcIK_2D_CCD
+(
+    ref List&lt;Bone_2D_CCD&gt; bones, // Bone values to update
+    double targetX,              // Target x position for the end effector
+    double targetY,              // Target y position for the end effector
+    double arrivalDist           // Must get within this range of the target
+)
+{
+     // Set an epsilon value to prevent division by small numbers.
+    const double epsilon = 0.0001; 
+ 
+    // Set max arc length a bone can move the end effector an be considered no motion
+    // so that we can detect a failure state.
+    const double trivialArcLength = 0.00001; 
+ 
+ 
+    int numBones = bones.Count;
+    Debug.Assert(numBones &gt; 0);
+ 
+    double arrivalDistSqr = arrivalDist*arrivalDist;
+ 
+    //===
+    // Generate the world space bone data.
+    List&lt;Bone_2D_CCD_World&gt; worldBones = new List&lt;Bone_2D_CCD_World&gt;();
+ 
+    // Start with the root bone.
+    Bone_2D_CCD_World rootWorldBone = new Bone_2D_CCD_World();
+    rootWorldBone.x = bones[0].x;
+    rootWorldBone.y = bones[0].y;
+    rootWorldBone.angle = bones[0].angle;
+    rootWorldBone.cosAngle = Math.Cos( rootWorldBone.angle );
+    rootWorldBone.sinAngle = Math.Sin( rootWorldBone.angle );
+    worldBones.Add( rootWorldBone );
+ 
+    // Convert child bones to world space.
+    for( int boneIdx = 1; boneIdx &lt; numBones; ++boneIdx )
+    {
+        Bone_2D_CCD_World prevWorldBone    = worldBones[boneIdx-1];
+        Bone_2D_CCD curLocalBone = bones[boneIdx];
+ 
+        Bone_2D_CCD_World newWorldBone = new Bone_2D_CCD_World();
+        newWorldBone.x = prevWorldBone.x + prevWorldBone.cosAngle*curLocalBone.x
+                                         - prevWorldBone.sinAngle*curLocalBone.y;
+        newWorldBone.y = prevWorldBone.y + prevWorldBone.sinAngle*curLocalBone.x
+                                         + prevWorldBone.cosAngle*curLocalBone.y;
+        newWorldBone.angle = prevWorldBone.angle + curLocalBone.angle;
+        newWorldBone.cosAngle = Math.Cos( newWorldBone.angle );
+        newWorldBone.sinAngle = Math.Sin( newWorldBone.angle );
+        worldBones.Add(newWorldBone);
+    }
+ 
+    //===
+    // Track the end effector position (the final bone)
+    double endX = worldBones[numBones-1].x;
+    double endY = worldBones[numBones-1].y;
+ 
+    //===
+    // Perform CCD on the bones by optimizing each bone in a loop 
+    // from the final bone to the root bone
+    bool modifiedBones = false;
+    for( int boneIdx = numBones-2; boneIdx &gt;= 0; --boneIdx )
+    {
+        // Get the vector from the current bone to the end effector position.
+        double curToEndX = endX - worldBones[boneIdx].x;
+        double curToEndY = endY - worldBones[boneIdx].y;
+        double curToEndMag = Math.Sqrt( curToEndX*curToEndX + curToEndY*curToEndY );
+ 
+        // Get the vector from the current bone to the target position.
+        double curToTargetX = targetX - worldBones[boneIdx].x;
+        double curToTargetY = targetY - worldBones[boneIdx].y;
+        double curToTargetMag = Math.Sqrt(   curToTargetX*curToTargetX
+                                           + curToTargetY*curToTargetY );
+ 
+        // Get rotation to place the end effector on the line from the current
+        // joint position to the target postion.
+        double cosRotAng;
+        double sinRotAng;
+        double endTargetMag = (curToEndMag*curToTargetMag);
+        if( endTargetMag &lt;= epsilon )
+        {
+            cosRotAng = 1;
+            sinRotAng = 0;
+        }
+        else
+        {
+            cosRotAng = (curToEndX*curToTargetX + curToEndY*curToTargetY) / endTargetMag;
+            sinRotAng = (curToEndX*curToTargetY - curToEndY*curToTargetX) / endTargetMag;
+        }
+ 
+        // Clamp the cosine into range when computing the angle (might be out of range
+        // due to floating point error).
+        double rotAng = Math.Acos( Math.Max(-1, Math.Min(1,cosRotAng) ) );
+        if( sinRotAng &lt; 0.0 )
+            rotAng = -rotAng;
+ 
+        // Rotate the end effector position.
+        endX = worldBones[boneIdx].x + cosRotAng*curToEndX - sinRotAng*curToEndY;
+        endY = worldBones[boneIdx].y + sinRotAng*curToEndX + cosRotAng*curToEndY;
+ 
+        // Rotate the current bone in local space (this value is output to the user)
+        bones[boneIdx].angle = SimplifyAngle( bones[boneIdx].angle + rotAng );
+ 
+        // Check for termination
+        double endToTargetX = (targetX-endX);
+        double endToTargetY = (targetY-endY);
+        if( endToTargetX*endToTargetX + endToTargetY*endToTargetY &lt;= arrivalDistSqr )
+        {
+            // We found a valid solution.
+            return CCDResult.Success;
+        }
+ 
+        // Track if the arc length that we moved the end effector was
+        // a nontrivial distance.
+        if( !modifiedBones && Math.Abs(rotAng)*curToEndMag &gt; trivialArcLength )
+        {
+            modifiedBones = true;
+        }
+    }
+ 
+    // We failed to find a valid solution during this iteration.
+    if( modifiedBones )
+        return CCDResult.Processing;
+    else
+        return CCDResult.Failure;
+}
+</pre>
+<p>&nbsp;</p>
+    </td>
+  </tr>
+<tr>
+<td id="content_comments" colspan="3">
+  <div id="disqus_thread"></div>
+  <script type="text/javascript">
+    var disqus_shortname = "ryanjuckett";var disqus_identifier = "JoomlaArticleId_22";var disqus_title = "Cyclic Coordinate Descent in 2D"; var disqus_url = "http://www.ryanjuckett.com/?view=article&id=22";  </script>
+  <script type="text/javascript">
+    (function() {
+    var dsq = document.createElement("script"); dsq.type = "text/javascript"; dsq.async = true;
+    dsq.src = "http://" + disqus_shortname + ".disqus.com/embed.js";
+    (document.getElementsByTagName("head")[0] || document.getElementsByTagName("body")[0]).appendChild(dsq);
+    })();
+  </script>
+  <noscript>
+    <a href="http://ryanjuckett.disqus.com/?url=ref">View the forum thread.</a>
+  </noscript>
+  <div class="disqus_credits">
+    <a href="http://disqus.com" class="dsq-brlink">
+      blog comments powered by <span class="logo-disqus">Disqus</span>
+    </a>
+  </div>
+  </td>
+  </tr>
+  
+  </table>
+</td>
+</tr>
+<tr>
+  <td colspan="2" style="padding:0">
+    <table id="copyright">
+      <tr>
+        <td id="copyright_left"></td>
+        <td colspan="2" id="copyright_center">
+          <p style="text-align: center;">
+            <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img alt="Creative Commons License" style="border-width:0" src="http://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />
+            RyanJuckett.com site content is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution 4.0 International License</a>.            
+          </p>
+        </td>
+        <td id="copyright_right"></td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+</body>
+<script type="text/javascript">
+SyntaxHighlighter.autoloader(
+	'applescript			      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushAppleScript.js',
+	'actionscript3 as3		  http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushAS3.js',
+	'bash shell				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushBash.js',
+	'coldfusion cf			    http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushColdFusion.js',
+	'cpp c					        http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushCpp.js',
+	'c# c-sharp csharp		  http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushCSharp.js',
+	'css					          http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushCss.js',
+	'delphi pascal			    http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushDelphi.js',
+	'diff patch pas			    http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushDiff.js',
+	'erl erlang				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushErlang.js',
+	'groovy					        http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushGroovy.js',
+	'java					          http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushJava.js',
+	'jfx javafx				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushJavaFX.js',
+	'js jscript javascript	http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushJScript.js',
+	'perl pl				        http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushPerl.js',
+	'php					          http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushPhp.js',
+	'text plain				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushPlain.js',
+	'py python				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushPython.js',
+	'powershell ps posh		  http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushPowerShell.js',
+	'ruby rails ror rb		  http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushRuby.js',
+	'sass scss				      http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushSass.js',
+	'scala					        http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushScala.js',
+	'sql					          http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushSql.js',
+	'vb vbnet				        http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushVb.js',
+	'xml xhtml xslt html	  http://www.ryanjuckett.com/SyntaxHighlighter/scripts/shBrushXml.js'
+);
+
+SyntaxHighlighter.all();
+</script>
+</html>

@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html class="client-nojs" lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8"/>
+<title>Game Creation with XNA/Mathematics Physics/Inverse Kinematics - Wikibooks, open books for an open world</title>
+<script>document.documentElement.className = document.documentElement.className.replace( /(^|\s)client-nojs(\s|$)/, "$1client-js$2" );</script>
+<script>(window.RLQ=window.RLQ||[]).push(function(){mw.config.set({"wgCanonicalNamespace":"","wgCanonicalSpecialPageName":false,"wgNamespaceNumber":0,"wgPageName":"Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics","wgTitle":"Game Creation with XNA/Mathematics Physics/Inverse Kinematics","wgCurRevisionId":2172044,"wgRevisionId":2172044,"wgArticleId":251271,"wgIsArticle":true,"wgIsRedirect":false,"wgAction":"view","wgUserName":null,"wgUserGroups":["*"],"wgCategories":["Book:Game Creation with XNA"],"wgBreakFrames":false,"wgPageContentLanguage":"en","wgPageContentModel":"wikitext","wgSeparatorTransformTable":["",""],"wgDigitTransformTable":["",""],"wgDefaultDateFormat":"dmy","wgMonthNames":["","January","February","March","April","May","June","July","August","September","October","November","December"],"wgMonthNamesShort":["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],"wgRelevantPageName":"Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics","wgRelevantArticleId":251271,"wgRequestId":"XIEoRwpAADgAAEAE6aEAAAAI","wgCSPNonce":false,"wgIsProbablyEditable":true,"wgRelevantPageIsProbablyEditable":true,"wgRestrictionEdit":[],"wgRestrictionMove":[],"wgFlaggedRevsParams":{"tags":{"value":{"levels":3,"quality":2,"pristine":3}}},"wgStableRevisionId":2172044,"wgCategoryTreePageCategoryOptions":"{\"mode\":0,\"hideprefix\":20,\"showcount\":true,\"namespaces\":false}","wgWikiEditorEnabledModules":[],"wgBetaFeaturesFeatures":[],"wgMediaViewerOnClick":true,"wgMediaViewerEnabledByDefault":true,"wgVisualEditor":{"pageLanguageCode":"en","pageLanguageDir":"ltr","pageVariantFallbacks":"en","usePageImages":false,"usePageDescriptions":true},"wgMFIsPageContentModelEditable":true,"wgMFEnableFontChanger":true,"wgMFDisplayWikibaseDescriptions":{"search":true,"nearby":true,"watchlist":true,"tagline":false},"wgWMESchemaEditAttemptStepOversample":false,"wgPoweredByHHVM":true,"wgULSCurrentAutonym":"English","wgNoticeProject":"wikibooks","wgCentralNoticeCookiesToDelete":[],"wgCentralNoticeCategoriesUsingLegacy":["Fundraising","fundraising"],"wgScoreNoteLanguages":{"arabic":"العربية","catalan":"català","deutsch":"Deutsch","english":"English","espanol":"español","italiano":"italiano","nederlands":"Nederlands","norsk":"norsk","portugues":"português","suomi":"suomi","svenska":"svenska","vlaams":"West-Vlams"},"wgScoreDefaultNoteLanguage":"nederlands","wgCentralAuthMobileDomain":false,"wgCodeMirrorEnabled":true,"wgVisualEditorToolbarScrollOffset":0,"wgVisualEditorUnsupportedEditParams":["undo","undoafter","veswitched"],"wgEditSubmitButtonLabelPublish":true});mw.loader.state({"ext.globalCssJs.user.styles":"ready","ext.globalCssJs.site.styles":"ready","site.styles":"ready","noscript":"ready","user.styles":"ready","ext.globalCssJs.user":"ready","ext.globalCssJs.site":"ready","user":"ready","user.options":"ready","user.tokens":"loading","ext.cite.styles":"ready","ext.pygments":"ready","mediawiki.legacy.shared":"ready","mediawiki.legacy.commonPrint":"ready","mediawiki.toc.styles":"ready","wikibase.client.init":"ready","ext.visualEditor.desktopArticleTarget.noscript":"ready","ext.uls.interlanguage":"ready","ext.wikimediaBadges":"ready","ext.3d.styles":"ready","ext.flaggedRevs.basic":"ready","mediawiki.skinning.interface":"ready","skins.vector.styles":"ready"});mw.loader.implement("user.tokens@0tffind",function($,jQuery,require,module){/*@nomin*/mw.user.tokens.set({"editToken":"+\\","patrolToken":"+\\","watchToken":"+\\","csrfToken":"+\\"});
+});RLPAGEMODULES=["ext.cite.ux-enhancements","site","mediawiki.page.startup","mediawiki.page.ready","mediawiki.toc","mediawiki.searchSuggest","ext.gadget.wikidialog","ext.gadget.commons-file","ext.centralauth.centralautologin","ext.visualEditor.desktopArticleTarget.init","ext.visualEditor.targetLoader","ext.eventLogging","ext.wikimediaEvents","ext.navigationTiming","ext.uls.eventlogger","ext.uls.init","ext.uls.compactlinks","ext.uls.interface","ext.centralNotice.geoIP","ext.centralNotice.startUp","ext.flaggedRevs.advanced","skins.vector.js"];mw.loader.load(RLPAGEMODULES);});</script>
+<link rel="stylesheet" href="/w/load.php?debug=false&amp;lang=en&amp;modules=ext.3d.styles%7Cext.cite.styles%7Cext.flaggedRevs.basic%7Cext.pygments%2CwikimediaBadges%7Cext.uls.interlanguage%7Cext.visualEditor.desktopArticleTarget.noscript%7Cmediawiki.legacy.commonPrint%2Cshared%7Cmediawiki.skinning.interface%7Cmediawiki.toc.styles%7Cskins.vector.styles%7Cwikibase.client.init&amp;only=styles&amp;skin=vector"/>
+<script async="" src="/w/load.php?debug=false&amp;lang=en&amp;modules=startup&amp;only=scripts&amp;skin=vector"></script>
+<meta name="ResourceLoaderDynamicStyles" content=""/>
+<link rel="stylesheet" href="/w/load.php?debug=false&amp;lang=en&amp;modules=site.styles&amp;only=styles&amp;skin=vector"/>
+<meta name="generator" content="MediaWiki 1.33.0-wmf.20"/>
+<meta name="referrer" content="origin"/>
+<meta name="referrer" content="origin-when-crossorigin"/>
+<meta name="referrer" content="origin-when-cross-origin"/>
+<link rel="alternate" type="application/x-wiki" title="Edit" href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit"/>
+<link rel="edit" title="Edit" href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit"/>
+<link rel="shortcut icon" href="/static/favicon/wikibooks.ico"/>
+<link rel="search" type="application/opensearchdescription+xml" href="/w/opensearch_desc.php" title="Wikibooks (en)"/>
+<link rel="EditURI" type="application/rsd+xml" href="//en.wikibooks.org/w/api.php?action=rsd"/>
+<link rel="license" href="//creativecommons.org/licenses/by-sa/3.0/"/>
+<link rel="alternate" type="application/atom+xml" title="Wikibooks Atom feed" href="/w/index.php?title=Special:RecentChanges&amp;feed=atom"/>
+<link rel="canonical" href="https://en.wikibooks.org/wiki/Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics"/>
+<link rel="dns-prefetch" href="//login.wikimedia.org"/>
+<link rel="dns-prefetch" href="//meta.wikimedia.org" />
+<!--[if lt IE 9]><script src="/w/load.php?debug=false&amp;lang=en&amp;modules=html5shiv&amp;only=scripts&amp;skin=vector&amp;sync=1"></script><![endif]-->
+</head>
+<body class="mediawiki ltr sitedir-ltr mw-hide-empty-elt ns-0 ns-subject mw-editable page-Game_Creation_with_XNA_Mathematics_Physics_Inverse_Kinematics rootpage-Game_Creation_with_XNA skin-vector action-view">		<div id="mw-page-base" class="noprint"></div>
+		<div id="mw-head-base" class="noprint"></div>
+		<div id="content" class="mw-body" role="main">
+			<a id="top"></a>
+			<div id="siteNotice" class="mw-body-content"><!-- CentralNotice --></div><div class="mw-indicators mw-body-content">
+</div>
+<h1 id="firstHeading" class="firstHeading" lang="en">Game Creation with XNA/Mathematics Physics/Inverse Kinematics</h1>			<div id="bodyContent" class="mw-body-content">
+				<div id="siteSub" class="noprint">From Wikibooks, open books for an open world</div>				<div id="contentSub"><span class="subpages">&lt; <a href="/wiki/Game_Creation_with_XNA" title="Game Creation with XNA">Game Creation with XNA</a></span></div>
+				<div id="jump-to-nav"></div>				<a class="mw-jump-link" href="#mw-head">Jump to navigation</a>
+				<a class="mw-jump-link" href="#p-search">Jump to search</a>
+				<div id="mw-content-text" lang="en" dir="ltr" class="mw-content-ltr"><div class="mw-parser-output"><div id="toc" class="toc"><input type="checkbox" role="button" id="toctogglecheckbox" class="toctogglecheckbox" style="display:none" /><div class="toctitle" lang="en" dir="ltr"><h2>Contents</h2><span class="toctogglespan"><label class="toctogglelabel" for="toctogglecheckbox"></label></span></div>
+<ul>
+<li class="toclevel-1 tocsection-1"><a href="#Inverse_Kinematics"><span class="tocnumber">1</span> <span class="toctext">Inverse Kinematics</span></a>
+<ul>
+<li class="toclevel-2 tocsection-2"><a href="#Jacobian_transpose_method"><span class="tocnumber">1.1</span> <span class="toctext">Jacobian transpose method</span></a></li>
+<li class="toclevel-2 tocsection-3"><a href="#Pseudoinverse_method"><span class="tocnumber">1.2</span> <span class="toctext">Pseudoinverse method</span></a></li>
+<li class="toclevel-2 tocsection-4"><a href="#Damped_Least_Squares_(DLS)"><span class="tocnumber">1.3</span> <span class="toctext">Damped Least Squares (DLS)</span></a></li>
+<li class="toclevel-2 tocsection-5"><a href="#Selectively_Damped_Least_Square_(SDLS)"><span class="tocnumber">1.4</span> <span class="toctext">Selectively Damped Least Square (SDLS)</span></a></li>
+<li class="toclevel-2 tocsection-6"><a href="#Cyclic_Coordinate_Descent"><span class="tocnumber">1.5</span> <span class="toctext">Cyclic Coordinate Descent</span></a></li>
+<li class="toclevel-2 tocsection-7"><a href="#Authors"><span class="tocnumber">1.6</span> <span class="toctext">Authors</span></a></li>
+<li class="toclevel-2 tocsection-8"><a href="#References"><span class="tocnumber">1.7</span> <span class="toctext">References</span></a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+<h2><span class="mw-headline" id="Inverse_Kinematics">Inverse Kinematics</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=1" title="Edit section: Inverse Kinematics">edit</a><span class="mw-editsection-bracket">]</span></span></h2>
+<p>Inverse Kinematics (IK) is related to skeletal animation.  Examples are the motion of a robotic arm or the motion of animated characters.  <a rel="nofollow" class="external text" href="http://www.3dkingdoms.com/ik.htm">Inverse Kinematics for Humanoid Skeletons Tutorial</a> and <a href="https://en.wikipedia.org/wiki/Inverse_kinematics" class="extiw" title="w:Inverse kinematics">Inverse kinematics on Wikipedia</a>.
+</p><p>An example could be the simulation of a robotic arm with the XNA framework.  This chapter should worry more about the mathematical background, whereas the chapter Character Animation will deal more with the models coming from 3D modellers.
+</p><p>If you want to move an arm of robotics or animated characters to a certain direction this entity is mostly modeled as a rigid multibody system consisting of a set of rigid objects which are called links. These links are connected by joints. To control the movement of this rigid multibody and get it into the destined direction inverse kinematics is often used. 
+</p><p>The goal of inverse kinematics is to place each joint at its target. For that the right settings for the joint angles need to be found. The angles are represented by a vector <sup id="cite_ref-buss_1-0" class="reference"><a href="#cite_note-buss-1">&#91;1&#93;</a></sup>.  
+</p><p>Inverse kinematics is very challenging since there may be several possible solutions for the angle or none. In case of a solution complex and expensive computations could be required to find it <sup id="cite_ref-rotenberg_2-0" class="reference"><a href="#cite_note-rotenberg-2">&#91;2&#93;</a></sup>.  
+Many different approaches for solving that problem exist:
+</p>
+<ul><li>Jacobian transpose method</li>
+<li>Pseudoinverse method</li>
+<li>Damped Least Squares (DLS)</li>
+<li>Selectively Damped Least Square (SDLS)</li>
+<li>Cyclic Coordinate Descent</li></ul>
+<p><br />
+It is a big effort to implement the Jacobian based methods because they require enormous mathematical knowledge and many prerequisites like classes for matrices with m columns and n rows or singular value decomposition. An Example for implementation can be found <a rel="nofollow" class="external text" href="http://www.math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/">here</a>.
+It was created by  Samuel R. Buss and Jin-Su Kim.
+</p><p>All methods mentioned above except the Cyclic Coordinate Descent are based upon the Jacobian matrix which is a function of the joint angle values and used to determine the end position. They discuss the question of how to choose the angle. The values of the angles need to be altered until a value approximately equal to the target value is reached. 
+</p><p>Updating the values of the joint angles can be used in two ways:
+</p><p><br />
+1)	Each step perform a single update of the angle values (using equation) so that joint follows the target position. <br />
+2)	The angles are updated iteratively until it is close to a solution <sup id="cite_ref-buss_1-1" class="reference"><a href="#cite_note-buss-1">&#91;1&#93;</a></sup> <br />
+</p><p><br />
+The Jacobian can only be used as an approximation near a position. The process of calculating the Jacobian must therefore be repeated in small steps until the desired end position is reached.  
+</p><p><br />
+Pseudo Code:
+</p><p><br />
+<code>while (e is too far from g) {
+</code></p><p><code>		Compute J(e,Φ) for the current pose Φ 
+</code></p><p><code>		Compute J-1	                        // invert the Jacobian matrix
+</code></p><p><code>		Δe = β(g - e)		// pick approximate step to take
+</code></p><p><code>		ΔΦ = J-1 • Δe	// compute change in joint DOFs
+</code></p><p><code>		Φ = Φ + ΔΦ	// apply change to DOFs
+</code></p><p><code>		Compute new e vector	// apply forward kinematics to see where we ended up
+</code></p><p><code>}</code><sup id="cite_ref-rotenberg_2-1" class="reference"><a href="#cite_note-rotenberg-2">&#91;2&#93;</a></sup> 
+</p><p><br />
+The following methods deal with the issue of choosing the appropriate angle value.
+</p>
+<h3><span class="mw-headline" id="Jacobian_transpose_method">Jacobian transpose method</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=2" title="Edit section: Jacobian transpose method">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>The idea of the Jacobian transpose method is to update the angles by equation using the transpose instead of the inverse or pseudoinverse (since an inversion is not always possible)<sup id="cite_ref-buss_1-2" class="reference"><a href="#cite_note-buss-1">&#91;1&#93;</a></sup> .  
+With this method the change to an angle can be computed directly by looping through it.
+It avoids expensive inversion and singularity problems but converges towards a solution very slowly. The motion of this method closely matches the physics unlike other inverse kinematics solutions which can result in an unnatural motion <sup id="cite_ref-taba_3-0" class="reference"><a href="#cite_note-taba-3">&#91;3&#93;</a></sup>.  
+</p>
+<h3><span class="mw-headline" id="Pseudoinverse_method">Pseudoinverse method</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=3" title="Edit section: Pseudoinverse method">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>This method sets the angle values to the pseudoinverse of the Jacobian. 
+It tries to find a matrix which effectively inverts a non-square matrix. It has singularity issues which tend to the fact that certain directions are not reachable.
+The problem is that the method first loops through all angles and then needs to compute and store the Jacobian, pseudoinvert it, calculate the changes in the angle and last apply the changes <sup id="cite_ref-rotenberg2_4-0" class="reference"><a href="#cite_note-rotenberg2-4">&#91;4&#93;</a></sup>. 
+</p>
+<h3><span id="Damped_Least_Squares_.28DLS.29"></span><span class="mw-headline" id="Damped_Least_Squares_(DLS)">Damped Least Squares (DLS)</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=4" title="Edit section: Damped Least Squares (DLS)">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>This method avoids certain problems of the pseudoinverse method. It finds the value of the angle that minimizes the quantity rather than just the one finding the minimum vector. The damping constant must be chosen carefully to make the equation stable <sup id="cite_ref-buss_1-3" class="reference"><a href="#cite_note-buss-1">&#91;1&#93;</a></sup>.  
+</p>
+<h3><span id="Selectively_Damped_Least_Square_.28SDLS.29"></span><span class="mw-headline" id="Selectively_Damped_Least_Square_(SDLS)">Selectively Damped Least Square (SDLS)</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=5" title="Edit section: Selectively Damped Least Square (SDLS)">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>This method is a refinement of the DLS method and needs fewer iterations. 
+</p>
+<h3><span class="mw-headline" id="Cyclic_Coordinate_Descent">Cyclic Coordinate Descent</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=6" title="Edit section: Cyclic Coordinate Descent">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>The algorithms based on the inverse Jacobian Matrix are sometimes unstable and fail to converge. Therefore another method exists. The Cyclic Coordinate Descent adjusts one joint angle at a time. It starts at the last link in the chain and works backwards iteratively through all of the adjustable angles until the desired position is reached or the loop has repeated a set number of times. The algorithm uses two vectors to determine the angle in order to rotate the model to the desired spot. This is solved by the inverse cosine of the dot product. Additionally, to define the rotation direction the cross product is used <sup id="cite_ref-lander_5-0" class="reference"><a href="#cite_note-lander-5">&#91;5&#93;</a></sup>.  A concept demonstration of the method can be watched <a rel="nofollow" class="external text" href="http://www.youtube.com/watch?v=MvuO9ZHGr6k">here</a>
+</p><p>Here is a sample implementation:
+</p><p><br />
+First we need an object that represents a joint.
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Microsoft.Xna.Framework</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Microsoft.Xna.Framework.Graphics</span><span class="p">;</span>
+
+<span class="k">namespace</span> <span class="nn">InverseKinematics</span>
+<span class="p">{</span>
+    <span class="c1">/// &lt;summary&gt;</span>
+    <span class="c1">/// Represents a chain link of the class BoneChain</span>
+    <span class="c1">/// &lt;/summary&gt;</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">Bone</span>
+    <span class="p">{</span>
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// the bone&#39;s appearance</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">private</span> <span class="n">Cuboid</span> <span class="n">cuboid</span><span class="p">;</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// the bone&#39;s last calculated angle if errors occure like not a number</span>
+        <span class="c1">/// this will be used instead</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="kt">float</span> <span class="n">lastAngle</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+
+        <span class="k">private</span> <span class="n">Vector3</span> <span class="n">worldCoordinate</span><span class="p">,</span> <span class="n">destination</span><span class="p">;</span>
+        
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// where the bone does point at</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="n">Vector3</span> <span class="n">Destination</span>
+        <span class="p">{</span>
+            <span class="k">get</span> <span class="p">{</span> <span class="k">return</span> <span class="n">destination</span><span class="p">;</span> <span class="p">}</span>
+            <span class="k">set</span> <span class="p">{</span> <span class="n">destination</span> <span class="p">=</span> <span class="k">value</span><span class="p">;</span> <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// the bone&#39;s source position</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="n">Vector3</span> <span class="n">WorldCoordinate</span>
+        <span class="p">{</span>
+            <span class="k">get</span> <span class="p">{</span> <span class="k">return</span> <span class="n">worldCoordinate</span><span class="p">;</span> <span class="p">}</span>
+            <span class="k">set</span> <span class="p">{</span> <span class="n">worldCoordinate</span> <span class="p">=</span> <span class="k">value</span><span class="p">;</span> <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Generates a bone by another bone&#39;s end</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;lastBone&quot;&gt;the bone&#39;s end for this bone&#39;s source&lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;destination&quot;&gt;&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="nf">Bone</span><span class="p">(</span><span class="n">Bone</span> <span class="n">lastBone</span><span class="p">,</span> <span class="n">Vector3</span> <span class="n">destination</span><span class="p">)</span> <span class="p">:</span> <span class="k">this</span><span class="p">(</span><span class="n">lastBone</span><span class="p">.</span><span class="n">Effector</span><span class="p">,</span> <span class="n">destination</span><span class="p">)</span>
+        <span class="p">{</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Generates a bone at a coordinate in </span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;worldCoordinate&quot;&gt;&lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;destination&quot;&gt;&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="nf">Bone</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">worldCoordinate</span><span class="p">,</span> <span class="n">Vector3</span> <span class="n">destination</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">cuboid</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Cuboid</span><span class="p">();</span>
+            <span class="k">this</span><span class="p">.</span><span class="n">worldCoordinate</span> <span class="p">=</span> <span class="n">worldCoordinate</span><span class="p">;</span>
+            <span class="k">this</span><span class="p">.</span><span class="n">destination</span> <span class="p">=</span> <span class="n">destination</span><span class="p">;</span>
+        <span class="p">}</span>
+</pre></div>
+<p>These are the fields and constructors which we need for our bone class. The field cuboid is the 3D model which represents our bone. The destination and worldCoordinate describe the joints. The worldCoordinate shows the position of the bone. The destination is the targeted position. The first constructor contains the settings for both vectors. The second constructor takes the world position and the target position (also called end effector) and generates a new world position for the new bone from them.
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// calculate&#39;s the bone&#39;s appearance appropiate to its world position</span>
+        <span class="c1">/// and its destination</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">Update</span><span class="p">()</span>
+        <span class="p">{</span>
+
+            <span class="n">Vector3</span> <span class="n">direction</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Vector3</span><span class="p">(</span><span class="n">destination</span><span class="p">.</span><span class="n">Length</span><span class="p">()</span> <span class="p">/</span> <span class="m">2</span><span class="p">,</span> <span class="m">0</span><span class="p">,</span> <span class="m">0</span><span class="p">);</span>
+            
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Scale</span><span class="p">(</span><span class="k">new</span> <span class="n">Vector3</span><span class="p">(</span><span class="n">destination</span><span class="p">.</span><span class="n">Length</span><span class="p">()</span> <span class="p">/</span> <span class="m">2</span><span class="p">,</span> <span class="m">5f</span><span class="p">,</span> <span class="m">5f</span><span class="p">));</span>
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Translate</span><span class="p">(</span><span class="n">direction</span><span class="p">);</span>
+
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Rotate</span><span class="p">(</span><span class="n">SphereCoordinateOrientation</span><span class="p">(</span><span class="n">destination</span><span class="p">));</span>
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Translate</span><span class="p">(</span><span class="n">worldCoordinate</span><span class="p">);</span>
+
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+        <span class="p">}</span>
+</pre></div>
+<p>The update method scales the cuboid with the length of the destination vector with the width of 5 and depth of 5. It translates the cuboid by its half length to get the rotation pivot and rotates it by the sphere coordinate angles of the destination vector and translates it to its world coordinate.
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Draws the bone&#39;s appearance</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;device&quot;&gt;the device to draw the bone&#39;s appearance&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">Draw</span><span class="p">(</span><span class="n">GraphicsDevice</span> <span class="n">device</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">cuboid</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">device</span><span class="p">);</span>
+        <span class="p">}</span>
+</pre></div>
+<p>The draw method draws the updated vector.
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// generates the bone&#39;s rotation by unsing sphere coordinates</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;position&quot;&gt;&lt;/param&gt;</span>
+        <span class="c1">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span class="k">private</span> <span class="n">Vector3</span> <span class="nf">SphereCoordinateOrientation</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">position</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="kt">float</span> <span class="n">alpha</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+            <span class="kt">float</span> <span class="n">beta</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">position</span><span class="p">.</span><span class="n">Z</span> <span class="p">!=</span> <span class="m">0.0</span> <span class="p">||</span> <span class="n">position</span><span class="p">.</span><span class="n">X</span> <span class="p">!=</span> <span class="m">0.0</span><span class="p">)</span>
+                <span class="n">alpha</span> <span class="p">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">Math</span><span class="p">.</span><span class="n">Atan2</span><span class="p">(</span><span class="n">position</span><span class="p">.</span><span class="n">Z</span><span class="p">,</span> <span class="n">position</span><span class="p">.</span><span class="n">X</span><span class="p">);</span>
+
+            <span class="k">if</span> <span class="p">(</span><span class="n">position</span><span class="p">.</span><span class="n">Y</span> <span class="p">!=</span> <span class="m">0.0</span><span class="p">)</span>
+                <span class="n">beta</span> <span class="p">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">Math</span><span class="p">.</span><span class="n">Atan2</span><span class="p">(</span><span class="n">position</span><span class="p">.</span><span class="n">Y</span><span class="p">,</span> <span class="n">Math</span><span class="p">.</span><span class="n">Sqrt</span><span class="p">(</span><span class="n">position</span><span class="p">.</span><span class="n">X</span> <span class="p">*</span> <span class="n">position</span><span class="p">.</span><span class="n">X</span> <span class="p">+</span> <span class="n">position</span><span class="p">.</span><span class="n">Z</span> <span class="p">*</span> <span class="n">position</span><span class="p">.</span><span class="n">Z</span><span class="p">));</span>
+
+            <span class="k">return</span> <span class="k">new</span> <span class="nf">Vector3</span><span class="p">(</span><span class="m">0</span><span class="p">,</span> <span class="p">-</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">);</span>
+        <span class="p">}</span>
+</pre></div>
+<p><br />
+<a class="external text" href="http://en.wikipedia.org/wiki/Spherical_coordinate_system">Spherical coordinate system</a>
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// the bone&#39;s destination is local and points to the world&#39;s destination</span>
+        <span class="c1">/// so this function just subtract&#39;s the bone&#39;s world coordinate from the world&#39;s destination</span>
+        <span class="c1">/// and gets the bone&#39;s local destination vector</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;destination&quot;&gt;The destination in the world coordinate system&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">SetLocalDestinationbyAWorldDestination</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">destination</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="n">destination</span> <span class="p">=</span> <span class="n">destination</span> <span class="p">-</span> <span class="n">worldCoordinate</span><span class="p">;</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// the bone&#39;s source plus the bone&#39;s destination vector</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;returns&gt;&lt;/returns&gt;</span>
+        <span class="k">public</span> <span class="n">Vector3</span> <span class="n">Effector</span>
+        <span class="p">{</span>
+            <span class="k">get</span> 
+            <span class="p">{</span>
+                <span class="k">return</span> <span class="n">worldCoordinate</span> <span class="p">+</span> <span class="n">destination</span><span class="p">;</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>The rest of the bone class is getters and setters.
+</p><p><br />
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span><span class="k">using</span> <span class="nn">System</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Collections.Generic</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Linq</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">System.Text</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Microsoft.Xna.Framework.Graphics</span><span class="p">;</span>
+<span class="k">using</span> <span class="nn">Microsoft.Xna.Framework</span><span class="p">;</span>
+
+<span class="k">namespace</span> <span class="nn">InverseKinematics</span>
+<span class="p">{</span>
+    <span class="c1">/// &lt;summary&gt;</span>
+    <span class="c1">/// The BoneChain class repressents a list of bones which are always connected once.</span>
+    <span class="c1">/// On the one hand you can add new bones and every bone&#39;s source is the last bone&#39;s destination</span>
+    <span class="c1">/// on the other hand you can use the cyclic coordinate descent to change the bones&#39; positions. </span>
+    <span class="c1">/// &lt;/summary&gt;</span>
+    <span class="k">public</span> <span class="k">class</span> <span class="nc">BoneChain</span>
+    <span class="p">{</span>
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// The last bone that were created</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">private</span> <span class="n">Bone</span> <span class="n">lastBone</span><span class="p">;</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// All the concatenated bones </span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">private</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Bone</span><span class="p">&gt;</span> <span class="n">bones</span><span class="p">;</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Creates an empty bone chain</span>
+        <span class="c1">/// Added Bones will be affected by inverse kinematics</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="nf">BoneChain</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="k">this</span><span class="p">.</span><span class="n">bones</span> <span class="p">=</span> <span class="k">new</span> <span class="n">List</span><span class="p">&lt;</span><span class="n">Bone</span><span class="p">&gt;();</span>
+        <span class="p">}</span>
+</pre></div>
+<p>The BoneChain class repressents a list of bones which are always connected once. On the one hand you can add new bones and every bone's source is the last bone's destination on the other hand you can use the cyclic coordinate descent to change the bones' positions. The class works with a list which contains the bones their coordinates. The class has two modes. The first is the creation mode where one bone is created after another and they keep connected. The other mode is the CCD (described further below). 
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Draws all the bones in this chain</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;device&quot;&gt;&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">Draw</span><span class="p">(</span><span class="n">GraphicsDevice</span> <span class="n">device</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">foreach</span> <span class="p">(</span><span class="n">Bone</span> <span class="n">bone</span> <span class="k">in</span> <span class="n">bones</span><span class="p">)</span> <span class="n">bone</span><span class="p">.</span><span class="n">Draw</span><span class="p">(</span><span class="n">device</span><span class="p">);</span>
+        <span class="p">}</span>
+</pre></div>
+<p><br />
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Creates a bone</span>
+        <span class="c1">/// Every bone&#39;s destination is the next bone&#39;s source </span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;v&quot;&gt;the bone&#39;s destination&lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;click&quot;&gt;if true it sets the bone with its coordinate and adds the next bone&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">CreateBone</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">v</span><span class="p">,</span> <span class="kt">bool</span> <span class="n">click</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">click</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="c1">//if it is the first bone it will create the bone&#39;s source at the destination point</span>
+                <span class="c1">//so it need not to start at the coordinates(0/0/0)</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">bones</span><span class="p">.</span><span class="n">Count</span> <span class="p">==</span> <span class="m">0</span><span class="p">)</span>
+                <span class="p">{</span>
+                    <span class="n">lastBone</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Bone</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Zero</span><span class="p">);</span>
+                    <span class="n">bones</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">lastBone</span><span class="p">);</span>
+                <span class="p">}</span>
+                <span class="k">else</span>
+                <span class="p">{</span>
+                    <span class="n">Bone</span> <span class="n">temp</span> <span class="p">=</span> <span class="k">new</span> <span class="n">Bone</span><span class="p">(</span><span class="n">lastBone</span><span class="p">,</span> <span class="n">v</span><span class="p">);</span>
+                    <span class="n">bones</span><span class="p">.</span><span class="n">Add</span><span class="p">(</span><span class="n">temp</span><span class="p">);</span>
+                    <span class="n">lastBone</span> <span class="p">=</span> <span class="n">temp</span><span class="p">;</span>
+                <span class="p">}</span>
+            <span class="p">}</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">lastBone</span> <span class="p">!=</span> <span class="k">null</span><span class="p">)</span>
+            <span class="p">{</span>
+                <span class="n">lastBone</span><span class="p">.</span><span class="n">SetLocalDestinationbyAWorldDestination</span><span class="p">(</span><span class="n">v</span><span class="p">);</span>
+            <span class="p">}</span>
+
+        <span class="p">}</span>
+</pre></div>
+<p>This is the method for creating the bones (creation mode)
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// The Cyclic Coordinate Descent</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;destination&quot;&gt;Where the bones should be adjusted&lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;gameTime&quot;&gt;&lt;/param&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">CalculateCCD</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">destination</span><span class="p">,</span> <span class="n">GameTime</span> <span class="n">gameTime</span><span class="p">)</span>
+        <span class="p">{</span>
+
+                <span class="c1">// iterating the bones reverse</span>
+                <span class="kt">int</span> <span class="n">index</span> <span class="p">=</span> <span class="n">bones</span><span class="p">.</span><span class="n">Count</span> <span class="p">-</span> <span class="m">1</span><span class="p">;</span>
+                <span class="k">while</span> <span class="p">(</span><span class="n">index</span> <span class="p">&gt;=</span> <span class="m">0</span><span class="p">)</span>
+                <span class="p">{</span>
+                    <span class="c1">//getting the vector between the new destination and the joint&#39;s world position</span>
+                    <span class="n">Vector3</span> <span class="n">jointWorldPositionToDestination</span> <span class="p">=</span> <span class="n">destination</span> <span class="p">-</span> <span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">index</span><span class="p">).</span><span class="n">WorldCoordinate</span><span class="p">;</span>
+
+                    <span class="c1">//getting the vector between the end effector and the joint&#39;s world position</span>
+                    <span class="n">Vector3</span> <span class="n">boneWorldToEndEffector</span> <span class="p">=</span> <span class="n">bones</span><span class="p">.</span><span class="n">Last</span><span class="p">().</span><span class="n">Effector</span> <span class="p">-</span> <span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">index</span><span class="p">).</span><span class="n">WorldCoordinate</span><span class="p">;</span>
+                    
+                    <span class="c1">//calculate the rotation axis which is the cross product of the destination</span>
+                    <span class="n">Vector3</span> <span class="n">cross</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Cross</span><span class="p">(</span><span class="n">jointWorldPositionToDestination</span><span class="p">,</span> <span class="n">boneWorldToEndEffector</span><span class="p">);</span>
+
+                    <span class="c1">//normalizing that rotation axis</span>
+                    <span class="n">cross</span><span class="p">.</span><span class="n">Normalize</span><span class="p">();</span>
+                    <span class="c1">//check if there occured divisions by 0 </span>
+                    <span class="k">if</span> <span class="p">(</span><span class="kt">float</span><span class="p">.</span><span class="n">IsNaN</span><span class="p">(</span><span class="n">cross</span><span class="p">.</span><span class="n">X</span><span class="p">)</span> <span class="p">||</span> <span class="kt">float</span><span class="p">.</span><span class="n">IsNaN</span><span class="p">(</span><span class="n">cross</span><span class="p">.</span><span class="n">Y</span><span class="p">)</span> <span class="p">||</span> <span class="kt">float</span><span class="p">.</span><span class="n">IsNaN</span><span class="p">(</span><span class="n">cross</span><span class="p">.</span><span class="n">Z</span><span class="p">))</span>
+                    <span class="c1">//take a temporary vector</span>
+                    <span class="n">cross</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">UnitZ</span><span class="p">;</span>
+
+                    <span class="c1">// calculate the angle between jointWorldPositionToDestination and boneWorldToEndEffector</span>
+                    <span class="c1">// in regard of the rotation axis</span>
+                    <span class="kt">float</span> <span class="n">angle</span> <span class="p">=</span> <span class="n">CalculateAngle</span><span class="p">(</span><span class="n">jointWorldPositionToDestination</span><span class="p">,</span> <span class="n">boneWorldToEndEffector</span><span class="p">,</span> <span class="n">cross</span><span class="p">);</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="kt">float</span><span class="p">.</span><span class="n">IsNaN</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span> <span class="n">angle</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+
+                    <span class="c1">//create a matrix for the roation of this bone&#39;s destination</span>
+                    <span class="n">Matrix</span> <span class="n">m</span> <span class="p">=</span> <span class="n">Matrix</span><span class="p">.</span><span class="n">CreateFromAxisAngle</span><span class="p">(</span><span class="n">cross</span><span class="p">,</span> <span class="n">angle</span><span class="p">);</span>
+
+                    <span class="c1">// rotate the destination</span>
+                    <span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">index</span><span class="p">).</span><span class="n">Destination</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">index</span><span class="p">).</span><span class="n">Destination</span><span class="p">,</span> <span class="n">m</span><span class="p">);</span>
+                    
+                    <span class="c1">// update all bones which are affected by this bone</span>
+                    <span class="n">UpdateBones</span><span class="p">(</span><span class="n">index</span><span class="p">);</span>
+                    <span class="n">index</span><span class="p">--;</span>
+                <span class="p">}</span>
+        <span class="p">}</span>
+</pre></div>
+<p>This is one possible version of the CCD Algorithm. 
+</p>
+<div class="mw-highlight mw-content-ltr" dir="ltr"><pre><span></span>        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// While CalculateCCD changes the destinations of all the bones, </span>
+        <span class="c1">/// every affected adjacent bone&#39;s WorldCoordinate must be updated to keep the bone chain together.</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;index&quot;&gt;when the bones should updated, because CalculateCCD changed their destinations&lt;/param&gt;</span>
+        <span class="k">private</span> <span class="k">void</span> <span class="nf">UpdateBones</span><span class="p">(</span><span class="kt">int</span> <span class="n">index</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="k">for</span> <span class="p">(</span><span class="kt">int</span> <span class="n">j</span> <span class="p">=</span> <span class="n">index</span><span class="p">;</span> <span class="n">j</span> <span class="p">&lt;</span> <span class="n">bones</span><span class="p">.</span><span class="n">Count</span> <span class="p">-</span> <span class="m">1</span><span class="p">;</span> <span class="n">j</span><span class="p">++)</span>
+            <span class="p">{</span>
+                <span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">j</span> <span class="p">+</span> <span class="m">1</span><span class="p">).</span><span class="n">WorldCoordinate</span> <span class="p">=</span> <span class="p">(</span><span class="n">bones</span><span class="p">.</span><span class="n">ElementAt</span><span class="p">(</span><span class="n">j</span><span class="p">).</span><span class="n">Effector</span><span class="p">);</span>
+            <span class="p">}</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// Updates all the representation parameters for every bone </span>
+        <span class="c1">/// including orienations and positionsin this bonechain </span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="k">public</span> <span class="k">void</span> <span class="nf">Update</span><span class="p">()</span>
+        <span class="p">{</span>
+            <span class="k">foreach</span> <span class="p">(</span><span class="n">Bone</span> <span class="n">bone</span> <span class="k">in</span> <span class="n">bones</span><span class="p">)</span> <span class="n">bone</span><span class="p">.</span><span class="n">Update</span><span class="p">();</span>
+        <span class="p">}</span>
+
+        <span class="c1">/// &lt;summary&gt;</span>
+        <span class="c1">/// This function calculates an angle between two vectors</span>
+        <span class="c1">/// the cross product which is orthogonal to the two vectors is the most common orientation vector </span>
+        <span class="c1">/// for specifing the angle&#39;s direction.</span>
+        <span class="c1">/// &lt;/summary&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;v0&quot;&gt;the first vector &lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;v1&quot;&gt;the second vector &lt;/param&gt;</span>
+        <span class="c1">/// &lt;param name=&quot;crossProductOfV0andV1&quot;&gt;the cross product of the first and second vector &lt;/param&gt;</span>
+        <span class="c1">/// &lt;returns&gt;the angle between the two vectors in radians&lt;/returns&gt;</span>
+        <span class="k">private</span> <span class="kt">float</span> <span class="nf">CalculateAngle</span><span class="p">(</span><span class="n">Vector3</span> <span class="n">v0</span><span class="p">,</span> <span class="n">Vector3</span> <span class="n">v1</span><span class="p">,</span> <span class="n">Vector3</span> <span class="n">crossProductOfV0andV1</span><span class="p">)</span>
+        <span class="p">{</span>
+            <span class="n">Vector3</span> <span class="n">n0</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">v0</span><span class="p">);</span>
+            <span class="n">Vector3</span> <span class="n">n1</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">v1</span><span class="p">);</span>
+            <span class="n">Vector3</span> <span class="n">NCross</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Cross</span><span class="p">(</span><span class="n">n1</span><span class="p">,</span> <span class="n">n0</span><span class="p">);</span>
+            <span class="n">NCross</span><span class="p">.</span><span class="n">Normalize</span><span class="p">();</span>
+            <span class="kt">float</span> <span class="n">NDot</span> <span class="p">=</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Dot</span><span class="p">(</span><span class="n">n0</span><span class="p">,</span> <span class="n">n1</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">(</span><span class="kt">float</span><span class="p">.</span><span class="n">IsNaN</span><span class="p">(</span><span class="n">NDot</span><span class="p">))</span> <span class="n">NDot</span> <span class="p">=</span> <span class="m">0</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">NDot</span> <span class="p">&gt;</span> <span class="m">1</span><span class="p">)</span> <span class="n">NDot</span> <span class="p">=</span> <span class="m">1</span><span class="p">;</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">NDot</span> <span class="p">&lt;</span> <span class="p">-</span><span class="m">1</span><span class="p">)</span> <span class="n">NDot</span> <span class="p">=</span> <span class="p">-</span><span class="m">1</span><span class="p">;</span>
+            <span class="kt">float</span> <span class="n">a</span> <span class="p">=</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">Math</span><span class="p">.</span><span class="n">Acos</span><span class="p">(</span><span class="n">NDot</span><span class="p">);</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">n0</span> <span class="p">+</span> <span class="n">n1</span><span class="p">).</span><span class="n">Length</span><span class="p">()</span> <span class="p">&lt;</span> <span class="m">0.01f</span><span class="p">)</span> <span class="k">return</span> <span class="p">(</span><span class="kt">float</span><span class="p">)</span><span class="n">Math</span><span class="p">.</span><span class="n">PI</span><span class="p">;</span>
+            <span class="k">return</span> <span class="n">Vector3</span><span class="p">.</span><span class="n">Dot</span><span class="p">(</span><span class="n">NCross</span><span class="p">,</span> <span class="n">crossProductOfV0andV1</span><span class="p">)</span> <span class="p">&gt;=</span> <span class="m">0</span> <span class="p">?</span> <span class="n">a</span> <span class="p">:</span> <span class="p">-</span><span class="n">a</span><span class="p">;</span>
+        <span class="p">}</span>
+
+
+
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+<p>The entire project can be download <a rel="nofollow" class="external text" href="http://inversekinematicsccd.codeplex.com">here</a>
+</p>
+<h3><span class="mw-headline" id="Authors">Authors</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=7" title="Edit section: Authors">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<p>Nexus' Child
+</p>
+<h3><span class="mw-headline" id="References">References</span><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;section=8" title="Edit section: References">edit</a><span class="mw-editsection-bracket">]</span></span></h3>
+<ol class="references">
+<li id="cite_note-buss-1"><span class="mw-cite-backlink">↑ <sup><a href="#cite_ref-buss_1-0"><i><b>a</b></i></a></sup> <sup><a href="#cite_ref-buss_1-1"><i><b>b</b></i></a></sup> <sup><a href="#cite_ref-buss_1-2"><i><b>c</b></i></a></sup> <sup><a href="#cite_ref-buss_1-3"><i><b>d</b></i></a></sup></span> <span class="reference-text">Samuel R. Buss: <a rel="nofollow" class="external text" href="http://math.ucsd.edu/~sbuss/ResearchWeb/ikmethods/iksurvey.pdf">Introduction to Inverse Kinematics with Jacobian Transpose, Pseudoinverse and Damped Least Squares methods</a>.</span>
+</li>
+<li id="cite_note-rotenberg-2"><span class="mw-cite-backlink">↑ <sup><a href="#cite_ref-rotenberg_2-0"><i><b>a</b></i></a></sup> <sup><a href="#cite_ref-rotenberg_2-1"><i><b>b</b></i></a></sup></span> <span class="reference-text"> Steve Rotenberg: <a rel="nofollow" class="external text" href="http://docs.google.com/viewer?a=v&amp;q=cache:Z8SfEv2_cfwJ:graphics.ucsd.edu/courses/cse169_w05/CSE169_12.ppt+Inverse+Kinematics+%28part+1%29,+Computer+Animation%3B+Steve+Rotenberg&amp;hl=de&amp;gl=de&amp;pid=bl&amp;srcid=ADGEESjRrDmfWoY4NMAJf1zHlQwQ3MX_bBLe6HVL0W2oP28JSk_CvGWzdYeGbjfX_Xmv9mcPJx9zDf91XFyJVqULYAcoBWKGBgKKcio_Vw6sTYAU30GLOdIJ7fJZDFJq5_QGQ-1JED0I&amp;sig=AHIEtbSbDyX18f6Dn8W0vPDDMldzcYzIBg">Inverse kinematics (part 1)</a></span>
+</li>
+<li id="cite_note-taba-3"><span class="mw-cite-backlink"><a href="#cite_ref-taba_3-0">↑</a></span> <span class="reference-text">Mike Tabaczynski: <a rel="nofollow" class="external text" href="http://www.mendeley.com/research/jacobian-solutions-inverse-kinematics-problem/#page-1">Jacobian Solutions to the Inverse Kinematics Problem</a></span>
+</li>
+<li id="cite_note-rotenberg2-4"><span class="mw-cite-backlink"><a href="#cite_ref-rotenberg2_4-0">↑</a></span> <span class="reference-text"> Jeff Rotenberg: <a rel="nofollow" class="external text" href="http://docs.google.com/viewer?a=v&amp;q=cache:uOW6YBBG4AMJ:graphics.ucsd.edu/courses/cse169_w05/CSE169_13.ppt+Inverse+Kinematics+%28part+2%29,+Computer+Animation%3B+Steve+Rotenberg&amp;hl=de&amp;gl=de&amp;pid=bl&amp;srcid=ADGEEShQWg4xidDYD8KtL_KONJFwJSwQPS2sxXqvOZ_MFFDvxLLtsaZ83kjotirCShr0-Gi5v7sKAzKsoxmIQ74r29UXXY8VzY9Zgly1KtLy5yekRhM4SJaf_-AI3gjZbLVlauwJ69xk&amp;sig=AHIEtbTpkE9y-5qU9rIZiYHfXlRoL-IBFg">Inverse kinematics (part 2)</a></span>
+</li>
+<li id="cite_note-lander-5"><span class="mw-cite-backlink"><a href="#cite_ref-lander_5-0">↑</a></span> <span class="reference-text">Jeff Lander: <a rel="nofollow" class="external text" href="http://graphics.cs.cmu.edu/nsp/course/15-464/Spring07/assignments/jlander_gamedev_nov98.pdf">Making Kine More Flexible</a></span>
+</li>
+</ol>
+
+<!-- 
+NewPP limit report
+Parsed by mw1309
+Cached time: 20190227010446
+Cache expiry: 2592000
+Dynamic content: false
+CPU time usage: 0.168 seconds
+Real time usage: 2.182 seconds
+Preprocessor visited node count: 256/1000000
+Preprocessor generated node count: 0/1500000
+Post‐expand include size: 814/2097152 bytes
+Template argument size: 539/2097152 bytes
+Highest expansion depth: 10/40
+Expensive parser function count: 0/500
+Unstrip recursion depth: 0/20
+Unstrip post‐expand size: 39375/5000000 bytes
+Number of Wikibase entities loaded: 0/400
+Lua time usage: 0.026/10.000 seconds
+Lua memory usage: 827 KB/50 MB
+-->
+<!--
+Transclusion expansion time report (%,ms,calls,template)
+100.00%   54.882      1 Template:BookCat
+100.00%   54.882      1 -total
+ 30.64%   16.818      1 Template:Evalx
+ 10.53%    5.779      1 Template:BOOKCATEGORY
+  5.42%    2.976      1 Template:NAIVEBOOKNAME
+-->
+
+<!-- Saved in parser cache with key enwikibooks:pcache:idhash:251271-0!canonical and timestamp 20190227010446 and revision id 2172044
+ -->
+</div><noscript><img src="//en.wikibooks.org/wiki/Special:CentralAutoLogin/start?type=1x1" alt="" title="" width="1" height="1" style="border: none; position: absolute;" /></noscript></div>					<div class="printfooter">
+						Retrieved from "<a dir="ltr" href="https://en.wikibooks.org/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;oldid=2172044">https://en.wikibooks.org/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;oldid=2172044</a>"					</div>
+				<div id="catlinks" class="catlinks" data-mw="interface"><div id="mw-normal-catlinks" class="mw-normal-catlinks"><a href="/wiki/Special:Categories" title="Special:Categories">Category</a>: <ul><li><a href="/wiki/Category:Book:Game_Creation_with_XNA" title="Category:Book:Game Creation with XNA">Book:Game Creation with XNA</a></li></ul></div></div>				<div class="visualClear"></div>
+							</div>
+		</div>
+		<div id="mw-navigation">
+			<h2>Navigation menu</h2>
+			<div id="mw-head">
+									<div id="p-personal" role="navigation" aria-labelledby="p-personal-label">
+						<h3 id="p-personal-label">Personal tools</h3>
+						<ul>
+							<li id="pt-anonuserpage">Not logged in</li><li id="pt-anontalk"><a href="/wiki/Special:MyTalk" title="Discussion about edits from this IP address [n]" accesskey="n">Discussion for this IP address</a></li><li id="pt-anoncontribs"><a href="/wiki/Special:MyContributions" title="A list of edits made from this IP address [y]" accesskey="y">Contributions</a></li><li id="pt-createaccount"><a href="/w/index.php?title=Special:CreateAccount&amp;returnto=Game+Creation+with+XNA%2FMathematics+Physics%2FInverse+Kinematics" title="You are encouraged to create an account and log in; however, it is not mandatory">Create account</a></li><li id="pt-login"><a href="/w/index.php?title=Special:UserLogin&amp;returnto=Game+Creation+with+XNA%2FMathematics+Physics%2FInverse+Kinematics" title="You are encouraged to log in; however, it is not mandatory [o]" accesskey="o">Log in</a></li>						</ul>
+					</div>
+									<div id="left-navigation">
+										<div id="p-namespaces" role="navigation" class="vectorTabs" aria-labelledby="p-namespaces-label">
+						<h3 id="p-namespaces-label">Namespaces</h3>
+						<ul>
+							<li id="ca-nstab-main" class="selected"><span><a href="/wiki/Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics" title="View the content page [c]" accesskey="c">Book</a></span></li><li id="ca-talk" class="new"><span><a href="/w/index.php?title=Talk:Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit&amp;redlink=1" rel="discussion" title="Discussion about the content page (does not exist) [t]" accesskey="t">Discussion</a></span></li>						</ul>
+					</div>
+										<div id="p-variants" role="navigation" class="vectorMenu emptyPortlet" aria-labelledby="p-variants-label">
+												<input type="checkbox" class="vectorMenuCheckbox" aria-labelledby="p-variants-label" />
+						<h3 id="p-variants-label">
+							<span>Variants</span>
+						</h3>
+						<ul class="menu">
+													</ul>
+					</div>
+									</div>
+				<div id="right-navigation">
+										<div id="p-views" role="navigation" class="vectorTabs" aria-labelledby="p-views-label">
+						<h3 id="p-views-label">Views</h3>
+						<ul>
+							<li id="ca-view" class="collapsible selected"><span><a href="/wiki/Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics">Read</a></span></li><li id="ca-edit" class="collapsible"><span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=edit" title="Edit this page [e]" accesskey="e">Edit</a></span></li><li id="ca-history" class="collapsible"><span><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=history" title="Past revisions of this page [h]" accesskey="h">View history</a></span></li>						</ul>
+					</div>
+										<div id="p-cactions" role="navigation" class="vectorMenu emptyPortlet" aria-labelledby="p-cactions-label">
+						<input type="checkbox" class="vectorMenuCheckbox" aria-labelledby="p-cactions-label" />
+						<h3 id="p-cactions-label"><span>More</span></h3>
+						<ul class="menu">
+													</ul>
+					</div>
+										<div id="p-search" role="search">
+						<h3>
+							<label for="searchInput">Search</label>
+						</h3>
+						<form action="/w/index.php" id="searchform">
+							<div id="simpleSearch">
+								<input type="search" name="search" placeholder="Search Wikibooks" title="Search Wikibooks [f]" accesskey="f" id="searchInput"/><input type="hidden" value="Special:Search" name="title"/><input type="submit" name="fulltext" value="Search" title="Search the pages for this text" id="mw-searchButton" class="searchButton mw-fallbackSearchButton"/><input type="submit" name="go" value="Go" title="Go to a page with this exact name if it exists" id="searchButton" class="searchButton"/>							</div>
+						</form>
+					</div>
+									</div>
+			</div>
+			<div id="mw-panel">
+				<div id="p-logo" role="banner"><a class="mw-wiki-logo" href="/wiki/Main_Page" title="Visit the main page"></a></div>
+						<div class="portal" role="navigation" id="p-Navigation" aria-labelledby="p-Navigation-label">
+			<h3 id="p-Navigation-label">Navigation</h3>
+			<div class="body">
+								<ul>
+					<li id="n-mainpage"><a href="/wiki/Main_Page" title="Visit the main page [z]" accesskey="z">Main Page</a></li><li id="n-help"><a href="/wiki/Help:Contents" title="Find help on how to use and edit Wikibooks">Help</a></li><li id="n-Browse"><a href="/wiki/Wikibooks:Card_Catalog_Office" title="Check out what Wikibooks has to offer">Browse</a></li><li id="n-Cookbook"><a href="/wiki/Cookbook:Table_of_Contents" title="Learn recipes from around the world">Cookbook</a></li><li id="n-Wikijunior"><a href="/wiki/Wikijunior" title="Books for children">Wikijunior</a></li><li id="n-Featured-books"><a href="/wiki/Wikibooks:Featured_books" title="The best of Wikibooks">Featured books</a></li><li id="n-recentchanges"><a href="/wiki/Special:RecentChanges" title="A list of recent changes in the wiki [r]" accesskey="r">Recent changes</a></li><li id="n-sitesupport"><a href="//donate.wikimedia.org/wiki/Special:FundraiserRedirector?utm_source=donate&amp;utm_medium=sidebar&amp;utm_campaign=C13_en.wikibooks.org&amp;uselang=en" title="Support Wikibooks">Donations</a></li><li id="n-randomrootpage"><a href="/wiki/Special:RandomInCategory/Book:Wikibooks_Stacks/Books">Random book</a></li><li id="n-Using-Wikibooks"><a href="/wiki/Using_Wikibooks">Using Wikibooks</a></li>				</ul>
+							</div>
+		</div>
+			<div class="portal" role="navigation" id="p-Community" aria-labelledby="p-Community-label">
+			<h3 id="p-Community-label">Community</h3>
+			<div class="body">
+								<ul>
+					<li id="n-Reading-room"><a href="/wiki/Wikibooks:Reading_room" title="Discuss Wikibooks-related questions and concerns with others">Reading room</a></li><li id="n-portal"><a href="/wiki/Wikibooks:Community_Portal" title="Find your way around the Wikibooks community">Community portal</a></li><li id="n-currentevents"><a href="/wiki/Wikibooks:Reading_room/Bulletin_Board" title="Important community news">Bulletin Board</a></li><li id="n-maintenance"><a href="/wiki/Wikibooks:Maintenance" title="Frequent tasks that you can help with">Help out!</a></li><li id="n-Policies-and-guidelines"><a href="/wiki/Wikibooks:Policies_and_guidelines" title="Pages detailing important rules and procedures">Policies and guidelines</a></li><li id="n-contact"><a href="/wiki/Wikibooks:Contact_us" title="Alternative methods of communication">Contact us</a></li>				</ul>
+							</div>
+		</div>
+			<div class="portal" role="navigation" id="p-tb" aria-labelledby="p-tb-label">
+			<h3 id="p-tb-label">Tools</h3>
+			<div class="body">
+								<ul>
+					<li id="t-whatlinkshere"><a href="/wiki/Special:WhatLinksHere/Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics" title="A list of all wiki pages that link here [j]" accesskey="j">What links here</a></li><li id="t-recentchangeslinked"><a href="/wiki/Special:RecentChangesLinked/Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics" rel="nofollow" title="Recent changes in pages linked from this page [k]" accesskey="k">Related changes</a></li><li id="t-upload"><a href="//commons.wikimedia.org/wiki/Special:UploadWizard?uselang=en" title="Upload files [u]" accesskey="u">Upload file</a></li><li id="t-specialpages"><a href="/wiki/Special:SpecialPages" title="A list of all special pages [q]" accesskey="q">Special pages</a></li><li id="t-permalink"><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;oldid=2172044" title="Permanent link to this revision of the page">Permanent link</a></li><li id="t-info"><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;action=info" title="More information about this page">Page information</a></li><li id="t-cite"><a href="/w/index.php?title=Special:CiteThisPage&amp;page=Game_Creation_with_XNA%2FMathematics_Physics%2FInverse_Kinematics&amp;id=2172044" title="Information on how to cite this page">Cite this page</a></li>				</ul>
+							</div>
+		</div>
+			<div class="portal" role="navigation" id="p-lang" aria-labelledby="p-lang-label">
+			<h3 id="p-lang-label">In other languages</h3>
+			<div class="body">
+								<ul>
+									</ul>
+				<div class="after-portlet after-portlet-lang"><span class="wb-langlinks-add wb-langlinks-link"><a href="https://www.wikidata.org/wiki/Special:NewItem?site=enwikibooks&amp;page=Game+Creation+with+XNA%2FMathematics+Physics%2FInverse+Kinematics" title="Add interlanguage links" class="wbc-editpage">Add links</a></span></div>			</div>
+		</div>
+			<div class="portal" role="navigation" id="p-Sister_projects" aria-labelledby="p-Sister_projects-label">
+			<h3 id="p-Sister_projects-label">Sister projects</h3>
+			<div class="body">
+								<ul>
+					<li id="n-Wikipedia"><a href="https://en.wikipedia.org/wiki/Main_Page">Wikipedia</a></li><li id="n-Wikiversity"><a href="https://en.wikiversity.org/wiki/Wikiversity:Main_Page">Wikiversity</a></li><li id="n-Wiktionary"><a href="https://en.wiktionary.org/wiki/Wiktionary:Main_Page">Wiktionary</a></li><li id="n-Wikiquote"><a href="https://en.wikiquote.org/wiki/Main_Page">Wikiquote</a></li><li id="n-Wikisource"><a href="https://en.wikisource.org/wiki/Main_Page">Wikisource</a></li><li id="n-Wikinews"><a href="https://en.wikinews.org/wiki/Main_Page">Wikinews</a></li><li id="n-Wikivoyage"><a href="https://en.wikivoyage.org/wiki/Main_Page">Wikivoyage</a></li><li id="n-Commons"><a href="https://commons.wikimedia.org/wiki/Main_Page">Commons</a></li><li id="n-Wikidata"><a href="https://www.wikidata.org/wiki/Wikidata:Main_Page">Wikidata</a></li>				</ul>
+							</div>
+		</div>
+			<div class="portal" role="navigation" id="p-coll-print_export" aria-labelledby="p-coll-print_export-label">
+			<h3 id="p-coll-print_export-label">Print/export</h3>
+			<div class="body">
+								<ul>
+					<li id="coll-create_a_book"><a href="/w/index.php?title=Special:Book&amp;bookcmd=book_creator&amp;referer=Game+Creation+with+XNA%2FMathematics+Physics%2FInverse+Kinematics">Create a collection</a></li><li id="coll-download-as-rdf2latex"><a href="/w/index.php?title=Special:ElectronPdf&amp;page=Game+Creation+with+XNA%2FMathematics+Physics%2FInverse+Kinematics&amp;action=show-download-screen">Download as PDF</a></li><li id="t-print"><a href="/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;printable=yes" title="Printable version of this page [p]" accesskey="p">Printable version</a></li>				</ul>
+							</div>
+		</div>
+				</div>
+		</div>
+				<div id="footer" role="contentinfo">
+						<ul id="footer-info">
+								<li id="footer-info-lastmod"> This page was last edited on 24 September 2011, at 22:02.</li>
+								<li id="footer-info-copyright">Text is available under the <a href="//creativecommons.org/licenses/by-sa/3.0/">Creative Commons Attribution-ShareAlike License.</a>; additional terms may apply.  By using this site, you agree to the <a href="//wikimediafoundation.org/wiki/Terms_of_Use">Terms of Use</a> and <a href="//wikimediafoundation.org/wiki/Privacy_policy">Privacy Policy.</a></li>
+							</ul>
+						<ul id="footer-places">
+								<li id="footer-places-privacy"><a href="https://foundation.wikimedia.org/wiki/Privacy_policy" class="extiw" title="wmf:Privacy policy">Privacy policy</a></li>
+								<li id="footer-places-about"><a href="/wiki/Wikibooks:Welcome" title="Wikibooks:Welcome">About Wikibooks</a></li>
+								<li id="footer-places-disclaimer"><a href="/wiki/Wikibooks:General_disclaimer" title="Wikibooks:General disclaimer">Disclaimers</a></li>
+								<li id="footer-places-developers"><a href="https://www.mediawiki.org/wiki/Special:MyLanguage/How_to_contribute">Developers</a></li>
+								<li id="footer-places-cookiestatement"><a href="https://foundation.wikimedia.org/wiki/Cookie_statement">Cookie statement</a></li>
+								<li id="footer-places-mobileview"><a href="//en.m.wikibooks.org/w/index.php?title=Game_Creation_with_XNA/Mathematics_Physics/Inverse_Kinematics&amp;mobileaction=toggle_view_mobile" class="noprint stopMobileRedirectToggle">Mobile view</a></li>
+							</ul>
+										<ul id="footer-icons" class="noprint">
+										<li id="footer-copyrightico">
+						<a href="https://wikimediafoundation.org/"><img src="/static/images/wikimedia-button.png" srcset="/static/images/wikimedia-button-1.5x.png 1.5x, /static/images/wikimedia-button-2x.png 2x" width="88" height="31" alt="Wikimedia Foundation"/></a>					</li>
+										<li id="footer-poweredbyico">
+						<a href="//www.mediawiki.org/"><img src="/static/images/poweredby_mediawiki_88x31.png" alt="Powered by MediaWiki" srcset="/static/images/poweredby_mediawiki_132x47.png 1.5x, /static/images/poweredby_mediawiki_176x62.png 2x" width="88" height="31"/></a>					</li>
+									</ul>
+						<div style="clear: both;"></div>
+		</div>
+		
+<script>(window.RLQ=window.RLQ||[]).push(function(){mw.config.set({"wgPageParseReport":{"limitreport":{"cputime":"0.168","walltime":"2.182","ppvisitednodes":{"value":256,"limit":1000000},"ppgeneratednodes":{"value":0,"limit":1500000},"postexpandincludesize":{"value":814,"limit":2097152},"templateargumentsize":{"value":539,"limit":2097152},"expansiondepth":{"value":10,"limit":40},"expensivefunctioncount":{"value":0,"limit":500},"unstrip-depth":{"value":0,"limit":20},"unstrip-size":{"value":39375,"limit":5000000},"entityaccesscount":{"value":0,"limit":400},"timingprofile":["100.00%   54.882      1 Template:BookCat","100.00%   54.882      1 -total"," 30.64%   16.818      1 Template:Evalx"," 10.53%    5.779      1 Template:BOOKCATEGORY","  5.42%    2.976      1 Template:NAIVEBOOKNAME"]},"scribunto":{"limitreport-timeusage":{"value":"0.026","limit":"10.000"},"limitreport-memusage":{"value":846929,"limit":52428800}},"cachereport":{"origin":"mw1309","timestamp":"20190227010446","ttl":2592000,"transientcontent":false}}});mw.config.set({"wgBackendResponseTime":105,"wgHostname":"mw1261"});});</script>
+	</body>
+</html>
