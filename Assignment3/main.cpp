@@ -73,7 +73,7 @@ float nearclip = 0.1f;
 float farclip = 100.0f;
 
 // camera
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 15.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -379,23 +379,31 @@ void createObjects()
 	sceneObjects[numObjects] = cubeObject;
 	numObjects++;
 
-	const char* cylinderFileName = "../Assignment3/meshes/Cylinder/cylinder.obj"; //
+	const char* cylinderFileName = "../Assignment3/meshes/Cylinder/cylinder_sm.obj"; //
 	vector<objl::Mesh> cylinderMeshes = loadMeshes(cylinderFileName);
 		
-	CGObject torso = loadObjObject(cylinderMeshes, true, true, vec3(-2.0f, -2.0f, 0.0f), vec3(7.0f, 1.0f, 7.0f), vec3(244/255.0f, 164/255.0f, 96/255.0f), 0.65f, NULL);		
+	CGObject torso = loadObjObject(cylinderMeshes, true, true, vec3(-0.4f, -4.5f, 0.0f), vec3(7.0f, 2.5f, 7.0f), vec3(244/255.0f, 164/255.0f, 96/255.0f), 0.65f, NULL);		
 	sceneObjects[numObjects] = torso;
 	numObjects++;
 
-	CGObject topArm = loadObjObject(cylinderMeshes, false, true, vec3(-0.6f, -0.5f, 0.0f), vec3(1.0f, 0.6f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	topArm.setInitialRotation(vec3(0.0f, 0.0f, 0.5f));
+	CGObject topArm = loadObjObject(cylinderMeshes, false, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.5f, 1.0f, 1.5f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
+	topArm.setInitialRotation(vec3(0.0f, 0.0f, -2.5f));
 	topArm.startVBO = torso.startVBO;  //reusing model
 	topArm.startIBO = torso.startIBO;  //reusing model
 	topArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
 	sceneObjects[numObjects] = topArm;
 	numObjects++;
 
-	CGObject bottomArm = loadObjObject(cylinderMeshes, false, true, vec3(0.8f, -1.4f, 0.0f), vec3(1.0f, 0.5f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, 1.0f));
+	float lengthTopArm = topArm.initialScaleVector.y * (topArm.Meshes[0].Vertices[1].Position.Y - topArm.Meshes[0].Vertices[0].Position.Y);
+
+	CGObject bottomArm = loadObjObject(cylinderMeshes, false, true, 
+			vec3(lengthTopArm * - sin(topArm.eulerAngles.z), lengthTopArm * cos(topArm.eulerAngles.z), 0.0f), 
+			vec3(1.5f, 0.8f, 1.5f), 
+			vec3(1.0f, 0.0f, 0.0f), 
+			0.65f, 
+			NULL);
+
+	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, -2.0f));
 	bottomArm.startVBO = torso.startVBO;  //reusing model
 	bottomArm.startIBO = torso.startIBO;  //reusing model
 	bottomArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
