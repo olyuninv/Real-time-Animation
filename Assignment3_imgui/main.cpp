@@ -23,6 +23,11 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include "opengl_utils.h"
@@ -33,6 +38,8 @@
 // Macro for indexing vertex buffer
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
+#define MAX_IK_TRIES 100 // TIMES THROUGH THE CCD LOOP
+#define IK_POS_THRESH 0.1f // THRESHOLD FOR SUCCESS
 
 using namespace glm;
 using namespace std;
@@ -42,15 +49,21 @@ using namespace Assignment3_imgui;
 GLFWwindow* window;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+
+// Function declarations
+glm::vec3 calculateEndPoint(glm::vec3 startPoint, float length, float angleZ, float angleY);
 
 // settings
 const unsigned int SCR_WIDTH = 1920;
 const unsigned int SCR_HEIGHT = 1100;
 
 opengl_utils glutils;
+
+bool lbutton_down = false;
 
 // timing
 float deltaTime = 0.0f;	// time between current frame and last frame
@@ -66,9 +79,11 @@ float lastY = SCR_HEIGHT / 2.0; //600.0 / 2.0;
 float fov = 45.0f;
 
 // camera
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 15.0f);
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+
+float initialCylinderLength = 2.0f;
 
 bool pause = true;
 bool useNormalMap = false;
@@ -95,9 +110,24 @@ bool show_demo_window = true;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+enum IKMethod
+{
+	CCD,
+	Jacobian
+};
+
+int IKmethod = IKMethod::CCD;
+int numJoints = 2;
+float goal[3] = { 8.0f,0.0f,0.0f };
+
+// do not hardcode indexes
+int sphereIndex = 1;
+int indexOfFirstJoint = 3;
+
+
 static void glfw_error_callback(int error, const char* description)
 {
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
+	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
 
 
@@ -108,16 +138,14 @@ glm::vec3 lightPos(0.0f, 2.0f, -3.0f);
 
 enum class textureInterpolation
 {
-	nearest = 1, 
-	linear = 2,	
+	nearest = 1,
+	linear = 2,
 	nearest_mipmap_nearest_interpolation = 3, //GL_NEAREST_MIPMAP_NEAREST: takes the nearest mipmap to match the pixel size and uses nearest neighbor interpolation for texture sampling.
 	nearest_mipmap_linear_interpolation = 4, //GL_LINEAR_MIPMAP_NEAREST : takes the nearest mipmap level and samples using linear interpolation.
 	interpolate_mipmap_nearest_interpolation = 5, //GL_NEAREST_MIPMAP_LINEAR : linearly interpolates between the two mipmaps that most closely match the size of a pixel and samples via nearest neighbor interpolation.
 	interpolate_mipmap_linear_interpolation = 6, //GL_LINEAR_MIPMAP_LINEAR : linearly interpolates between the two closest mipmaps and samples the texture via linear interpolation.* /	
-	
-};
 
-textureInterpolation texInterpolationType = textureInterpolation::nearest;
+};
 
 void addToObjectBuffer(CGObject *cg_object)
 {
@@ -236,7 +264,6 @@ CGObject createTorso(int &numberOfObjects)
 	return torso;
 }
 
-
 CGObject createCubeMap(int &numberOfObjects)
 {
 	// CUBEMAP
@@ -261,47 +288,56 @@ void createObjects()
 
 	CGObject cubeObject = createCubeMap(numObjects);
 
-	const char* cylinderFileName = "../Assignment3/meshes/Cylinder/cylinder.obj"; //
-	vector<objl::Mesh> cylinderMeshes = loadMeshes(cylinderFileName);
-	
-	std::vector<objl::Mesh> new_meshesCylinder;
-	std::vector<TangentMesh> new_tangentMeshesCylinder;
-
-	//recalculate meshes
-	CGObject::recalculateVerticesAndIndexes(cylinderMeshes, new_meshesCylinder, new_tangentMeshesCylinder);
-
-	CGObject torso = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, true, true, vec3(-2.0f, -2.0f, 0.0f), vec3(7.0f, 1.0f, 7.0f), vec3(244 / 255.0f, 164 / 255.0f, 96 / 255.0f), 0.65f, NULL);
-	sceneObjects[numObjects] = torso;
-	numObjects++;
-
-	CGObject topArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(-0.6f, -0.5f, 0.0f), vec3(1.0f, 0.6f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	topArm.setInitialRotation(vec3(0.0f, 0.0f, 0.5f));
-	topArm.startVBO = torso.startVBO;  //reusing model
-	topArm.startIBO = torso.startIBO;  //reusing model
-	topArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
-	sceneObjects[numObjects] = topArm;
-	numObjects++;
-
-	CGObject bottomArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(0.8f, -1.4f, 0.0f), vec3(1.0f, 0.5f, 1.0f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, 1.0f));
-	bottomArm.startVBO = torso.startVBO;  //reusing model
-	bottomArm.startIBO = torso.startIBO;  //reusing model
-	bottomArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
-	sceneObjects[numObjects] = bottomArm;
-	numObjects++;
-		
-	const char* sphereFileName = "../Assignment1/meshes/Sphere/sphere.obj";
+	const char* sphereFileName = "../Assignment3_imgui/meshes/Sphere/sphere.obj";
 	vector<objl::Mesh> sphereMeshes = loadMeshes(sphereFileName);
-	
+
 	std::vector<objl::Mesh> new_meshesSphere;
 	std::vector<TangentMesh> new_tangentMeshesSphere;
 
 	//recalculate meshes
 	CGObject::recalculateVerticesAndIndexes(sphereMeshes, new_meshesSphere, new_tangentMeshesSphere);
 
-	CGObject sphereObject = loadObjObject(new_meshesSphere, new_tangentMeshesSphere, true, true, vec3(0.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
-	sphereObject.initialScaleVector = vec3(0.2f,0.2f, 0.2f);
+	CGObject sphereObject = loadObjObject(new_meshesSphere, new_tangentMeshesSphere, true, true, vec3(5.0f, 0.0f, 0.0f), vec3(0.4f, 0.4f, 0.4f), vec3(0.0f, 1.0f, 0.0f), 0.65f, NULL);
+	sphereObject.initialScaleVector = vec3(0.5f, 0.5f, 0.5f);
 	sceneObjects[numObjects] = sphereObject;
+	numObjects++;
+
+	const char* cylinderFileName = "../Assignment3_imgui/meshes/Cylinder/cylinder_sm.obj"; //
+	vector<objl::Mesh> cylinderMeshes = loadMeshes(cylinderFileName);
+
+	std::vector<objl::Mesh> new_meshesCylinder;
+	std::vector<TangentMesh> new_tangentMeshesCylinder;
+
+	//recalculate meshes
+	CGObject::recalculateVerticesAndIndexes(cylinderMeshes, new_meshesCylinder, new_tangentMeshesCylinder);
+
+	CGObject torso = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, true, true, vec3(-0.4f, -4.5f, 0.0f), vec3(7.0f, 2.5f, 7.0f), vec3(244 / 255.0f, 164 / 255.0f, 96 / 255.0f), 0.65f, NULL);
+	sceneObjects[numObjects] = torso;
+	numObjects++;
+
+	CGObject topArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.5f, 1.0f, 1.5f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
+	topArm.setInitialRotation(vec3(0.0f, 0.0f, -2.5f));
+	topArm.startVBO = torso.startVBO;  //reusing model
+	topArm.startIBO = torso.startIBO;  //reusing model
+	topArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
+	sceneObjects[numObjects] = topArm;
+	numObjects++;
+
+	initialCylinderLength = (topArm.Meshes[0].Vertices[1].Position.Y - topArm.Meshes[0].Vertices[0].Position.Y);
+
+	CGObject bottomArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true,
+		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
+		topArm.previousRotationMatrix * vec4(0.0, topArm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
+		vec3(1.5f, 0.8f, 1.5f),
+		vec3(1.0f, 0.0f, 0.0f),
+		0.65f,
+		NULL);
+
+	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, -2.0f));
+	bottomArm.startVBO = torso.startVBO;  //reusing model
+	bottomArm.startIBO = torso.startIBO;  //reusing model
+	bottomArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
+	sceneObjects[numObjects] = bottomArm;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
@@ -309,21 +345,21 @@ void createObjects()
 	glutils.createIBO(n_ibovertices);
 
 	addToObjectBuffer(&cubeObject);
-	addToObjectBuffer(&torso);
 	addToObjectBuffer(&sphereObject);
+	addToObjectBuffer(&torso);
 	addToIndexBuffer(&cubeObject);
-	addToIndexBuffer(&torso);
 	addToIndexBuffer(&sphereObject);
+	addToIndexBuffer(&torso);
 
 	glutils.createTBO(n_vbovertices);
 	addToTangentBuffer(&cubeObject);
-	addToTangentBuffer(&torso);
 	addToTangentBuffer(&sphereObject);
+	addToTangentBuffer(&torso);
 
 	glutils.createBTBO(n_vbovertices);
 	addToBitangentBuffer(&cubeObject);
-	addToBitangentBuffer(&torso);
 	addToBitangentBuffer(&sphereObject);
+	addToBitangentBuffer(&torso);
 }
 
 void loadCube()
@@ -394,45 +430,13 @@ void init()
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-	/*When switching between mipmaps levels during rendering OpenGL might show some artifacts like sharp edges visible between the two mipmap layers. Just like normal texture filtering, it is also possible to filter between mipmap levels using NEAREST and LINEAR filtering for switching between mipmap levels. To specify the filtering method between mipmap levels we can replace the original filtering methods with one of the following four options:
-
-GL_NEAREST_MIPMAP_NEAREST: takes the nearest mipmap to match the pixel size and uses nearest neighbor interpolation for texture sampling.
-GL_LINEAR_MIPMAP_NEAREST: takes the nearest mipmap level and samples using linear interpolation.
-GL_NEAREST_MIPMAP_LINEAR: linearly interpolates between the two mipmaps that most closely match the size of a pixel and samples via nearest neighbor interpolation.
-GL_LINEAR_MIPMAP_LINEAR: linearly interpolates between the two closest mipmaps and samples the texture via linear interpolation.*/
-	   
-
-	switch (texInterpolationType)
-	{
-	case textureInterpolation::nearest:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		break;
-	case textureInterpolation::linear:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		break;
-	case textureInterpolation::nearest_mipmap_nearest_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-		break;
-	case textureInterpolation::nearest_mipmap_linear_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-		break;
-	case textureInterpolation::interpolate_mipmap_nearest_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-		break;
-	case textureInterpolation::interpolate_mipmap_linear_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		break;	
-	default:
-		break;
-	}
-
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 	// load and generate the texture
 	int width, height, nrChannels;
 	unsigned char *data = stbi_load("../Assignment3_imgui/meshes/Chess_Board/Chess_Board.jpg", &width, &height, &nrChannels, NULL);
-		
+
 	if (data)
 	{
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
@@ -508,6 +512,145 @@ GL_LINEAR_MIPMAP_LINEAR: linearly interpolates between the two closest mipmaps a
 	createObjects();
 }
 
+glm::vec3 calculateEndPoint(glm::vec3 startPoint, float length, float angleZ, float angleY)
+{
+	return glm::vec3(startPoint.x + length * -sin(angleZ) * cos(angleY),
+		startPoint.y + length * cos(angleZ),
+		startPoint.z + length * sin(angleZ) * sin(angleY));
+
+	//vec3(topArm.initialScaleVector.y * initialCylinderLength * -sin(topArm.eulerAngles.z),
+	//	topArm.initialScaleVector.y * initialCylinderLength * cos(topArm.eulerAngles.z),
+	//	0.0f),
+}
+
+float sq_distance(vec3 point1, vec3 point2)
+{
+	return pow(point2.x - point1.x, 2) + pow(point2.y - point1.x, 2) + pow(point2.z - point1.z, 2);
+}
+
+vec3 getEulerAngles(mat4 rotationMatrix)
+{
+	float theta1, theta2;
+	float phi1, phi2;
+	float psi1, psi2;
+
+	if (abs(rotationMatrix[0][2]) != 1)
+	{
+		theta1 = - asin(rotationMatrix[0][2]);
+		theta2 = 3.14 - theta1;  // py - theta 1
+		psi1 = atan2f(rotationMatrix[1][2] / cos(theta1), rotationMatrix[2][2] / cos(theta1));
+		psi2 = atan2f(rotationMatrix[1][2] / cos(theta2), rotationMatrix[2][2] / cos(theta2));
+		phi1 = atan2f(rotationMatrix[0][1] / cos(theta1), rotationMatrix[0][0] / cos(theta1)); 
+		phi2 = atan2f(rotationMatrix[0][1] / cos(theta2), rotationMatrix[0][0] / cos(theta2));
+	}
+	else
+	{
+		phi1 = phi2 = 0;
+		if (rotationMatrix[0][2] == -1)
+		{
+			theta1 = theta2 = 3.14 / 2;
+			psi1 = psi2  = phi1 + atan2(rotationMatrix[1][0], rotationMatrix[2][0]);
+		}
+		else
+		{
+			theta1 = theta2 = -3.14 / 2;
+			psi1 = psi2 = -phi1 + atan2(-rotationMatrix[1][0], -rotationMatrix[2][0]);
+		}
+	}
+
+	return vec3(theta1, psi1, phi1);
+}
+
+bool computeCCDLink()
+{
+	bool goalWithinThreshold = false;
+
+	int link = numJoints - 1;  // TODO: Add NUM_JOINTS UI
+	int tries = 0;
+
+	glm::vec3 currRoot, currEnd, goalVec, lastJointPosition, targetVector, currVector, normal;
+	float cosAngle, turnAngle, turnDegrees, lastJointLength;
+	quat quaternion;
+	int indexOfCurrLink, indexOfLastJoint;
+
+	indexOfLastJoint = indexOfFirstJoint + numJoints - 1;
+	goalVec = vec3(goal[0], goal[1], goal[2]);
+
+	do
+	{
+		indexOfCurrLink = indexOfFirstJoint + link;
+
+		currRoot = sceneObjects[indexOfCurrLink].position;
+
+		// calculate from position of last joint 
+		//lastJointPosition = sceneObjects[indexOfFirstJoint + numJoints - 1].position;  // calculate end from last joint
+		//lastJointLength = sceneObjects[indexOfFirstJoint + numJoints - 1].initialScaleVector.y * initialCylinderLength;
+
+		currEnd = sceneObjects[indexOfLastJoint].position + vec3(sceneObjects[indexOfLastJoint].previousRotationMatrix *
+			vec4(0.0, sceneObjects[indexOfLastJoint].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
+		
+		if (sq_distance(goalVec, currEnd) < IK_POS_THRESH)
+		{
+			// we are close
+			goalWithinThreshold = true;
+		}
+		else
+		{
+			// continue search
+			currVector = currEnd - currRoot;
+			targetVector = goalVec - currRoot;
+
+			currVector = glm::normalize(currVector);
+			targetVector = glm::normalize(targetVector);
+
+			cosAngle = dot(targetVector, currVector);
+			if (cosAngle < 0.99999)
+			{
+				normal = cross(currVector, targetVector);
+				turnAngle = acos(cosAngle);
+
+				quaternion.x = normal.x * sin(turnAngle / 2);
+				quaternion.y = normal.y * sin(turnAngle / 2);
+				quaternion.z = normal.z * sin(turnAngle / 2);
+				quaternion.w = cos(turnAngle / 2);
+
+				mat4 newRotationMatrix = sceneObjects[indexOfCurrLink].previousRotationMatrix * glm::toMat4(quaternion);
+				vec3 newEulerAngles = getEulerAngles(newRotationMatrix);
+
+				sceneObjects[indexOfCurrLink].setInitialRotation(newEulerAngles); // calculate depending on the previous object	
+
+				// update position and angles for all links
+				for (int k = indexOfCurrLink + 1; k < numObjects; k++)
+				{
+					if (k != indexOfFirstJoint) // ignore first joint
+					{
+						sceneObjects[k].position = sceneObjects[k - 1].position + 
+							vec3(sceneObjects[k - 1].previousRotationMatrix * vec4(0.0, sceneObjects[k - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
+					}
+
+					mat4 newRotationTemp = sceneObjects[k].previousRotationMatrix * glm::toMat4(quaternion);
+					vec3 newEulerAnglesTemp = getEulerAngles(newRotationTemp);
+					sceneObjects[k].setInitialRotation(newEulerAnglesTemp); // calculate depending on the previous object					
+				}
+
+				if (--link < 0)
+				{
+					// move back to last link
+					link = numJoints - 1;
+				}
+			}
+		}
+
+	} while (++tries < 2 && goalWithinThreshold == false);  //MAX_IK_TRIES
+
+	return goalWithinThreshold;
+}
+
+bool computeJacobian()
+{
+	return false;
+}
+
 void displayScene(glm::mat4 projection, glm::mat4 view)
 {
 	glPushMatrix();
@@ -559,7 +702,7 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 
 		glUniform3f(glutils.objectColorLoc3, sceneObjects[i].color.r, sceneObjects[i].color.g, sceneObjects[i].color.b);
 		sceneObjects[i].Draw(glutils, glutils.ShaderWithTextureID);
-		
+
 		glDisable(GL_TEXTURE_2D);
 	}
 
@@ -568,7 +711,7 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 }
 
 void displayCubeMap(glm::mat4 projection, glm::mat4 view)
-{	
+{
 	// First Draw cube map - sceneObjects[0]
 	glDepthMask(GL_FALSE);
 	glUseProgram(glutils.CubeMapID);
@@ -589,19 +732,16 @@ void displayCubeMap(glm::mat4 projection, glm::mat4 view)
 
 }
 
-void display(ImGuiIO& io)
+void drawImgui(ImGuiIO& io)
 {
-	float currentFrame = glfwGetTime();
-	deltaTime = currentFrame - lastFrame;
-	lastFrame = currentFrame;
-
-	// inpuT
-	processInput(window);
-
-	//io.WantCaptureMouse = false;
-	//io.WantCaptureKeyboard = false;
-	
 	//glfwMakeContextCurrent(window);
+	io.WantCaptureMouse = true;
+	io.WantCaptureKeyboard = true;
+	//io.MousePos = ImVec2(0.0, 0.0);
+	//io.MouseDragThreshold = 20.0;
+	//io.MouseDrawCursor = true;
+	//io.WantSetMousePos = true;
+	//io.MouseDrawCursor = true;
 
 	// Start the Dear ImGui frame
 	ImGui_ImplOpenGL3_NewFrame();
@@ -609,39 +749,45 @@ void display(ImGuiIO& io)
 	ImGui::NewFrame();
 
 	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-	if (show_demo_window)
-		ImGui::ShowDemoWindow(&show_demo_window);
+	//if (show_demo_window)
+	//	ImGui::ShowDemoWindow(&show_demo_window);
 
 	// 2. Show a simple window that we create ourselves. We use a Begin/End pair to created a named window.
 	{
-		static float f = 0.0f;
-		static int counter = 0;
+		//static int counter = 0;
 
-		ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+		ImGui::Begin("Inverse Kinematics");
 
-		ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-		ImGui::Checkbox("Another Window", &show_another_window);
+		const char* items[] = { "CCD", "Jacobian" };
+		ImGui::Combo("IK method", &IKmethod, items, IM_ARRAYSIZE(items));
 
-		ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-		ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+		ImGui::Spacing();
+		ImGui::Separator();
+		ImGui::Spacing();
 
-		if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-			counter++;
+		ImGui::Text("Please set the next location of the goal:");
+		ImGui::DragFloat3("Goal", goal, 0.1f, -10.0f, 10.0f, "%.1f");
+
+		ImGui::Text("Select number of joints:");
+		ImGui::SliderInt("Number of joints", &numJoints, 2, 5);
+
+		ImGui::Text("Change the length of arm parts:");
+		ImGui::DragFloat("Top arm", &sceneObjects[indexOfFirstJoint].initialScaleVector.y, 0.1f, 0.5f, 5.0f, "%.1f");
+		ImGui::DragFloat("Bottom arm ", &sceneObjects[indexOfFirstJoint + 1].initialScaleVector.y, 0.1f, 0.5f, 5.0f, "%.1f");
+
+		//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+		//ImGui::Checkbox("Another Window", &show_another_window);
+
+		//ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+		//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+		//if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+		//	counter++;
+
 		ImGui::SameLine();
-		ImGui::Text("counter = %d", counter);
+		//ImGui::Text("counter = %d", counter);
 
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-		ImGui::End();
-	}
-
-	// 3. Show another simple window.
-	if (show_another_window)
-	{
-		ImGui::Begin("Another Window", &show_another_window);   // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-		ImGui::Text("Hello from another window!");
-		if (ImGui::Button("Close Me"))
-			show_another_window = false;
+		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 	}
 
@@ -653,6 +799,18 @@ void display(ImGuiIO& io)
 	glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 	glClear(GL_COLOR_BUFFER_BIT);
 	ImGui::Render();
+}
+
+void display(ImGuiIO& io)
+{
+	float currentFrame = glfwGetTime();
+	deltaTime = currentFrame - lastFrame;
+	lastFrame = currentFrame;
+
+	// inpuT
+	processInput(window);
+
+	drawImgui(io);
 
 	// render
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
@@ -661,43 +819,40 @@ void display(ImGuiIO& io)
 	// Update projection 
 	glm::mat4 projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH) / (float)(SCR_HEIGHT), 0.1f, 100.0f);
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	switch (texInterpolationType)
-	{
-	case textureInterpolation::nearest:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		break;
-	case textureInterpolation::linear:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		break;
-	case textureInterpolation::nearest_mipmap_nearest_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-		break;
-	case textureInterpolation::nearest_mipmap_linear_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-		break;
-	case textureInterpolation::interpolate_mipmap_nearest_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
-		break;
-	case textureInterpolation::interpolate_mipmap_linear_interpolation:
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		break;
-	default:
-		break;
-	}
-
-	// DRAW CUBEMAP
+		// DRAW CUBEMAP
 	displayCubeMap(projection, view);
 
 	// DRAW SCENE
+	// Update target position from imGui
+	sceneObjects[sphereIndex].position.x = goal[0];
+	sceneObjects[sphereIndex].position.y = goal[1];
+	sceneObjects[sphereIndex].position.z = goal[2];
+
 	displayScene(projection, view);
-	
+
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
 	glDisableVertexAttribArray(3);
 
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+		
+	// Update Arm positions
+	if (IKmethod == IKMethod::CCD)
+	{
+		if (!pause)
+		{
+			computeCCDLink();
+			pause = true;
+		}
+	}
+	else
+	{
+		// Assume Jacobian
+		computeJacobian();
+	}
 
 	// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 	glfwSwapBuffers(window);
@@ -729,15 +884,16 @@ int main(void) {
 		glfwTerminate();
 		return -1;
 	}
-	
+
 	//detect key inputs
 	//glfwSetKeyCallback(window, keycallback);
-	//glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, 1);
 	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
+	glfwSetCursorPosCallback(window, mouse_pos_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 
 	glfwSwapInterval(1); // Enable vsync
@@ -756,6 +912,9 @@ int main(void) {
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableSetMousePos;
+	//io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
 
 	// Setup Dear ImGui style
@@ -829,19 +988,6 @@ void processInput(GLFWwindow *window)
 		useNormalMap = !useNormalMap;
 	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 		useSpecularMap = !useSpecularMap;
-	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::nearest;
-	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::linear;
-	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::nearest_mipmap_nearest_interpolation;
-	if (glfwGetKey(window, GLFW_KEY_4) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::nearest_mipmap_linear_interpolation;
-	if (glfwGetKey(window, GLFW_KEY_5) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::interpolate_mipmap_nearest_interpolation;
-	if (glfwGetKey(window, GLFW_KEY_6) == GLFW_PRESS)
-		texInterpolationType = textureInterpolation::interpolate_mipmap_linear_interpolation;
-
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -853,40 +999,61 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	glViewport(0, 0, width, height);
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT)
+	{
+		if (GLFW_PRESS == action)
+		{
+			lbutton_down = true;
+		}
+		else if (GLFW_RELEASE == action)
+		{
+			lbutton_down = false;
+			firstMouse = true;
+		}
+	}
+}
+
 // glfw: whenever the mouse moves, this callback is called
 // -------------------------------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void mouse_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (firstMouse)
+	if (lbutton_down)
 	{
+
+		if (firstMouse)
+		{
+			lastX = xpos;
+			lastY = ypos;
+			firstMouse = false;
+		}
+
+		float xoffset = xpos - lastX;
+		float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
 		lastX = xpos;
 		lastY = ypos;
-		firstMouse = false;
+
+		float sensitivity = 0.1f; // change this value to your liking
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		myyaw += xoffset;
+		mypitch += yoffset;
+
+		// make sure that when pitch is out of bounds, screen doesn't get flipped
+		if (mypitch > 89.0f)
+			mypitch = 89.0f;
+		if (mypitch < -89.0f)
+			mypitch = -89.0f;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(myyaw)) * cos(glm::radians(mypitch));
+		front.y = sin(glm::radians(mypitch));
+		front.z = sin(glm::radians(myyaw)) * cos(glm::radians(mypitch));
+		cameraFront = glm::normalize(front);
 	}
-
-	float xoffset = xpos - lastX;
-	float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-	lastX = xpos;
-	lastY = ypos;
-
-	float sensitivity = 0.1f; // change this value to your liking
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	myyaw += xoffset;
-	mypitch += yoffset;
-
-	// make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (mypitch > 89.0f)
-		mypitch = 89.0f;
-	if (mypitch < -89.0f)
-		mypitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(myyaw)) * cos(glm::radians(mypitch));
-	front.y = sin(glm::radians(mypitch));
-	front.z = sin(glm::radians(myyaw)) * cos(glm::radians(mypitch));
-	cameraFront = glm::normalize(front);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
