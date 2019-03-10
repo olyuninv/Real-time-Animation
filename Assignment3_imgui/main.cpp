@@ -119,6 +119,7 @@ enum IKMethod
 int IKmethod = IKMethod::CCD;
 int numJoints = 2;
 float goal[3] = { 8.0f,0.0f,0.0f };
+float increment = 0.1f;
 
 // do not hardcode indexes
 int sphereIndex = 1;
@@ -767,7 +768,7 @@ void drawImgui(ImGuiIO& io)
 		ImGui::Spacing();
 
 		ImGui::Text("Please set the next location of the goal:");
-		ImGui::DragFloat3("Goal", goal, 0.1f, -10.0f, 10.0f, "%.1f");
+		ImGui::DragFloat3("Goal", goal, increment, -10.0f, 10.0f, "%.1f");
 
 		ImGui::Text("Select number of joints:");
 		ImGui::SliderInt("Number of joints", &numJoints, 2, 5);
@@ -1009,6 +1010,30 @@ void processInput(GLFWwindow *window)
 		cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
 		cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 		firstMouse = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		goal[1] += increment;
+	}
+	if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		goal[1] -= increment;
+	}
+	if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		goal[0] += increment;
+	}
+	if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		goal[0] -= increment;
+	}
+	if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS)
+	{
+		goal[2] += increment;
+	}
+	if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS)
+	{
+		goal[2] -= increment;
 	}
 }
 
