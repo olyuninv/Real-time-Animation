@@ -37,12 +37,12 @@ namespace Assignment3_imgui
 	void CGObject::setInitialRotation(glm::vec3 initialRotationEuler)
 	{
 		this->initialRotateAngleEuler = initialRotationEuler;
-		this->eulerAngles = initialRotationEuler;
-		this->previousEulerAngles = initialRotationEuler;
+		//this->eulerAngles = initialRotationEuler;
+		//this->previousEulerAngles = initialRotationEuler;
 		glm::quat initialQuatRotation = glm::quat(this->initialRotateAngleEuler);
 		glm::mat4 rotationMatrix = glm::toMat4(initialQuatRotation);
 
-		this->previousRotationMatrix = glm::mat4(rotationMatrix);
+		this->rotationMatrix = glm::mat4(rotationMatrix);
 	}
 
 	glm::mat4 CGObject::createTransform(bool isRotationQuaternion)
@@ -53,35 +53,35 @@ namespace Assignment3_imgui
 
 		//glm::mat4 rotationMatrix = glm::EulerAngles(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
 
-		glm::mat4 rotationMatrix = glm::mat4(1.0);
+		//glm::mat4 rotationMatrix = glm::mat4(1.0);
 
-		if (isRotationQuaternion)
-		{
-			glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->previousEulerAngles.x,
-				this->eulerAngles.y - this->previousEulerAngles.y,
-				this->eulerAngles.z - this->previousEulerAngles.z);
+		//if (isRotationQuaternion)
+		//{
+		//	glm::vec3 newRotation = glm::vec3(this->eulerAngles.x - this->previousEulerAngles.x,
+		//		this->eulerAngles.y - this->previousEulerAngles.y,
+		//		this->eulerAngles.z - this->previousEulerAngles.z);
 
-			glm::quat quaternionRotation = glm::quat(newRotation);
-			rotationMatrix = this->previousRotationMatrix * glm::toMat4(quaternionRotation);
+		//	glm::quat quaternionRotation = glm::quat(newRotation);
+		//	rotationMatrix = this->rotationMatrix * glm::toMat4(quaternionRotation);
 
-			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
-			this->previousRotationMatrix = glm::mat4(rotationMatrix);
+		//	this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+		//	this->rotationMatrix = glm::mat4(rotationMatrix);
 
-		}
-		else
-		{
-			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
-			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
-			//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
+		//}
+		//else
+		//{
+		//	//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.y, glm::vec3(0, 1, 0));
+		//	//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.z, glm::vec3(0, 0, 1));
+		//	//rotationMatrix = glm::rotate(rotationMatrix, this->eulerAngles.x, glm::vec3(1, 0, 0));
 
-			//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
-			rotationMatrix = glm::eulerAngleYZX(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+		//	//rotationMatrix = glm::yawPitchRoll(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
+		//	rotationMatrix = glm::eulerAngleYZX(this->eulerAngles.y, this->eulerAngles.z, this->eulerAngles.x);
 
-			this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
-			this->previousRotationMatrix = glm::mat4(rotationMatrix);
-		}
+		//	this->previousEulerAngles = glm::vec3(this->eulerAngles.x, this->eulerAngles.y, this->eulerAngles.z);
+		//	this->rotationMatrix = glm::mat4(rotationMatrix);
+		//}
 
-		localTransform = localTransform * rotationMatrix;
+		localTransform = localTransform * this->rotationMatrix;
 
 		localTransform = glm::scale(localTransform, this->initialScaleVector);
 

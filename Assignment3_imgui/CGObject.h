@@ -50,8 +50,10 @@ namespace Assignment3_imgui
 		// Transform vectors
 		glm::vec3 position = glm::vec3(0, 0, 0);
 		glm::vec3 scaleVector = glm::vec3(0.0f, 0.0f, 0.0f);
-		glm::vec3 previousEulerAngles = glm::vec3(0, 0, 0);
-		glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
+		glm::mat4 rotationMatrix = glm::mat4(1.0);
+		
+		//glm::vec3 previousEulerAngles = glm::vec3(0, 0, 0);
+		//glm::vec3 eulerAngles = glm::vec3(0, 0, 0);
 
 		// Color
 		glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f); // White
@@ -66,8 +68,7 @@ namespace Assignment3_imgui
 		glm::mat4 globalTransform = glm::mat4(1.0);
 		
 		// Current orientation
-		glm::mat4 previousRotationMatrix = glm::mat4(1.0);
-
+		
 		CGObject *Parent = nullptr;
 
 		void Draw(opengl_utils glutils, GLuint programID);
@@ -88,6 +89,6 @@ namespace Assignment3_imgui
 			std::vector<objl::Vertex> & out_vertices,
 			unsigned short & result);
 
-		glm::vec3 initialRotateAngleEuler = glm::vec3(0, 0, 0);
+		glm::vec3 initialRotateAngleEuler = glm::vec3(0.0, 0.0, 0.0);
 	};
 }

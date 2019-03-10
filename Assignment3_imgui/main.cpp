@@ -39,7 +39,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_IK_TRIES 100 // TIMES THROUGH THE CCD LOOP
-#define IK_POS_THRESH 0.1f // THRESHOLD FOR SUCCESS
+#define IK_POS_THRESH 0.001f // THRESHOLD FOR SUCCESS
 
 using namespace glm;
 using namespace std;
@@ -316,7 +316,7 @@ void createObjects()
 	numObjects++;
 
 	CGObject topArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.5f, 1.0f, 1.5f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	topArm.setInitialRotation(vec3(0.0f, 0.0f, -2.5f));
+	topArm.setInitialRotation(vec3(0.5f, 0.5f, 0.0f));
 	topArm.startVBO = torso.startVBO;  //reusing model
 	topArm.startIBO = torso.startIBO;  //reusing model
 	topArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
@@ -327,13 +327,13 @@ void createObjects()
 
 	CGObject bottomArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true,
 		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
-		topArm.previousRotationMatrix * vec4(0.0, topArm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
+		topArm.rotationMatrix * vec4(0.0, topArm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
 		vec3(1.5f, 0.8f, 1.5f),
 		vec3(1.0f, 0.0f, 0.0f),
 		0.65f,
 		NULL);
 
-	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, -2.0f));
+	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
 	bottomArm.startVBO = torso.startVBO;  //reusing model
 	bottomArm.startIBO = torso.startIBO;  //reusing model
 	bottomArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
@@ -549,16 +549,16 @@ vec3 getEulerAngles(mat4 rotationMatrix)
 		if (rotationMatrix[0][2] == -1)
 		{
 			theta1 = theta2 = 3.14 / 2;
-			psi1 = psi2  = phi1 + atan2(rotationMatrix[1][0], rotationMatrix[2][0]);
+			psi1 = psi2  = phi1 + atan2f(rotationMatrix[1][0], rotationMatrix[2][0]);
 		}
 		else
 		{
 			theta1 = theta2 = -3.14 / 2;
-			psi1 = psi2 = -phi1 + atan2(-rotationMatrix[1][0], -rotationMatrix[2][0]);
+			psi1 = psi2 = -phi1 + atan2f(-rotationMatrix[1][0], -rotationMatrix[2][0]);
 		}
 	}
 
-	return vec3(theta1, psi1, phi1);
+	return vec3(psi1, theta1, phi1);
 }
 
 bool computeCCDLink()
@@ -586,7 +586,7 @@ bool computeCCDLink()
 		//lastJointPosition = sceneObjects[indexOfFirstJoint + numJoints - 1].position;  // calculate end from last joint
 		//lastJointLength = sceneObjects[indexOfFirstJoint + numJoints - 1].initialScaleVector.y * initialCylinderLength;
 
-		currEnd = sceneObjects[indexOfLastJoint].position + vec3(sceneObjects[indexOfLastJoint].previousRotationMatrix *
+		currEnd = sceneObjects[indexOfLastJoint].position + vec3(sceneObjects[indexOfLastJoint].rotationMatrix *
 			vec4(0.0, sceneObjects[indexOfLastJoint].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
 		
 		if (sq_distance(goalVec, currEnd) < IK_POS_THRESH)
@@ -604,9 +604,10 @@ bool computeCCDLink()
 			targetVector = glm::normalize(targetVector);
 
 			cosAngle = dot(targetVector, currVector);
-			if (cosAngle < 0.99999)
+			if (abs(cosAngle) < 0.99999)
 			{
 				normal = cross(currVector, targetVector);
+				normal = glm::normalize(normal);
 				turnAngle = acos(cosAngle);
 
 				quaternion.x = normal.x * sin(turnAngle / 2);
@@ -614,10 +615,9 @@ bool computeCCDLink()
 				quaternion.z = normal.z * sin(turnAngle / 2);
 				quaternion.w = cos(turnAngle / 2);
 
-				mat4 newRotationMatrix = sceneObjects[indexOfCurrLink].previousRotationMatrix * glm::toMat4(quaternion);
-				vec3 newEulerAngles = getEulerAngles(newRotationMatrix);
-
-				sceneObjects[indexOfCurrLink].setInitialRotation(newEulerAngles); // calculate depending on the previous object	
+				sceneObjects[indexOfCurrLink].rotationMatrix = glm::toMat4(quaternion) * sceneObjects[indexOfCurrLink].rotationMatrix;
+				//vec3 newEulerAngles = getEulerAngles(newRotationMatrix);
+				//sceneObjects[indexOfCurrLink].setInitialRotation(newEulerAngles); // calculate depending on the previous object	
 
 				// update position and angles for all links
 				for (int k = indexOfCurrLink + 1; k < numObjects; k++)
@@ -625,12 +625,13 @@ bool computeCCDLink()
 					if (k != indexOfFirstJoint) // ignore first joint
 					{
 						sceneObjects[k].position = sceneObjects[k - 1].position + 
-							vec3(sceneObjects[k - 1].previousRotationMatrix * vec4(0.0, sceneObjects[k - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
+							vec3(sceneObjects[k - 1].rotationMatrix * vec4(0.0, sceneObjects[k - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
 					}
 
-					mat4 newRotationTemp = sceneObjects[k].previousRotationMatrix * glm::toMat4(quaternion);
-					vec3 newEulerAnglesTemp = getEulerAngles(newRotationTemp);
-					sceneObjects[k].setInitialRotation(newEulerAnglesTemp); // calculate depending on the previous object					
+					//mat4 newRotationTemp = sceneObjects[k].rotationMatrix * glm::toMat4(quaternion);
+					//vec3 newEulerAnglesTemp = getEulerAngles(newRotationTemp);
+					//sceneObjects[k].setInitialRotation(newEulerAnglesTemp); // calculate depending on the previous object					
+					sceneObjects[k].rotationMatrix = glm::toMat4(quaternion) * sceneObjects[k].rotationMatrix;
 				}
 
 				if (--link < 0)
@@ -641,7 +642,7 @@ bool computeCCDLink()
 			}
 		}
 
-	} while (++tries < 2 && goalWithinThreshold == false);  //MAX_IK_TRIES
+	} while (++tries < 1000 && goalWithinThreshold == false);  //MAX_IK_TRIES
 
 	return goalWithinThreshold;
 }
@@ -988,6 +989,27 @@ void processInput(GLFWwindow *window)
 		useNormalMap = !useNormalMap;
 	if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
 		useSpecularMap = !useSpecularMap;
+	if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+	{
+		cameraPos = glm::vec3(0.0f, 0.0f, 15.0f);
+		cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+		cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		firstMouse = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+	{
+		cameraPos = glm::vec3(0.0f, 15.0f, 0.0f);
+		cameraFront = glm::vec3(0.0f, -1.0f, 0.0f);
+		cameraUp = glm::vec3(0.0f, 0.0f, 1.0f);
+		firstMouse = true;
+	}
+	if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+	{
+		cameraPos = glm::vec3(15.0f, 0.0f, 0.0f);
+		cameraFront = glm::vec3(-1.0f, 0.0f, 0.0f);
+		cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+		firstMouse = true;
+	}
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
