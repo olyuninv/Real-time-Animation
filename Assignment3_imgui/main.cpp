@@ -39,7 +39,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_IK_TRIES 100 // TIMES THROUGH THE CCD LOOP
-#define IK_POS_THRESH 0.001f // THRESHOLD FOR SUCCESS
+#define IK_POS_THRESH 0.01f // THRESHOLD FOR SUCCESS
 
 using namespace glm;
 using namespace std;
@@ -109,6 +109,7 @@ int numObjects = 0;
 bool show_demo_window = true;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+bool withinReach = false;
 
 enum IKMethod
 {
@@ -116,7 +117,15 @@ enum IKMethod
 	Jacobian
 };
 
+enum AnimType
+{
+	track,
+	animate
+};
+
 int IKmethod = IKMethod::CCD;
+int animType = AnimType::track;
+
 int numJoints = 2;
 float goal[3] = { 8.0f,0.0f,0.0f };
 float increment = 0.1f;
@@ -526,7 +535,7 @@ glm::vec3 calculateEndPoint(glm::vec3 startPoint, float length, float angleZ, fl
 
 float sq_distance(vec3 point1, vec3 point2)
 {
-	return pow(point2.x - point1.x, 2) + pow(point2.y - point1.x, 2) + pow(point2.z - point1.z, 2);
+	return pow(point2.x - point1.x, 2) + pow(point2.y - point1.y, 2) + pow(point2.z - point1.z, 2);
 }
 
 vec3 getEulerAngles(mat4 rotationMatrix)
@@ -537,11 +546,11 @@ vec3 getEulerAngles(mat4 rotationMatrix)
 
 	if (abs(rotationMatrix[0][2]) != 1)
 	{
-		theta1 = - asin(rotationMatrix[0][2]);
+		theta1 = -asin(rotationMatrix[0][2]);
 		theta2 = 3.14 - theta1;  // py - theta 1
 		psi1 = atan2f(rotationMatrix[1][2] / cos(theta1), rotationMatrix[2][2] / cos(theta1));
 		psi2 = atan2f(rotationMatrix[1][2] / cos(theta2), rotationMatrix[2][2] / cos(theta2));
-		phi1 = atan2f(rotationMatrix[0][1] / cos(theta1), rotationMatrix[0][0] / cos(theta1)); 
+		phi1 = atan2f(rotationMatrix[0][1] / cos(theta1), rotationMatrix[0][0] / cos(theta1));
 		phi2 = atan2f(rotationMatrix[0][1] / cos(theta2), rotationMatrix[0][0] / cos(theta2));
 	}
 	else
@@ -550,7 +559,7 @@ vec3 getEulerAngles(mat4 rotationMatrix)
 		if (rotationMatrix[0][2] == -1)
 		{
 			theta1 = theta2 = 3.14 / 2;
-			psi1 = psi2  = phi1 + atan2f(rotationMatrix[1][0], rotationMatrix[2][0]);
+			psi1 = psi2 = phi1 + atan2f(rotationMatrix[1][0], rotationMatrix[2][0]);
 		}
 		else
 		{
@@ -589,7 +598,7 @@ bool computeCCDLink()
 
 		currEnd = sceneObjects[indexOfLastJoint].position + vec3(sceneObjects[indexOfLastJoint].rotationMatrix *
 			vec4(0.0, sceneObjects[indexOfLastJoint].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
-		
+
 		if (sq_distance(goalVec, currEnd) < IK_POS_THRESH)
 		{
 			// we are close
@@ -625,7 +634,7 @@ bool computeCCDLink()
 				{
 					if (k != indexOfFirstJoint) // ignore first joint
 					{
-						sceneObjects[k].position = sceneObjects[k - 1].position + 
+						sceneObjects[k].position = sceneObjects[k - 1].position +
 							vec3(sceneObjects[k - 1].rotationMatrix * vec4(0.0, sceneObjects[k - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
 					}
 
@@ -750,7 +759,7 @@ void drawImgui(ImGuiIO& io)
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+	//// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 	//if (show_demo_window)
 	//	ImGui::ShowDemoWindow(&show_demo_window);
 
@@ -762,6 +771,9 @@ void drawImgui(ImGuiIO& io)
 
 		const char* items[] = { "CCD", "Jacobian" };
 		ImGui::Combo("IK method", &IKmethod, items, IM_ARRAYSIZE(items));
+
+		const char* items2[] = { "Track", "Animate" };
+		ImGui::Combo("Animation method", &animType, items2, IM_ARRAYSIZE(items2));
 
 		ImGui::Spacing();
 		ImGui::Separator();
@@ -777,18 +789,15 @@ void drawImgui(ImGuiIO& io)
 		ImGui::DragFloat("Top arm", &sceneObjects[indexOfFirstJoint].initialScaleVector.y, 0.1f, 0.5f, 5.0f, "%.1f");
 		ImGui::DragFloat("Bottom arm ", &sceneObjects[indexOfFirstJoint + 1].initialScaleVector.y, 0.1f, 0.5f, 5.0f, "%.1f");
 
-		//ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-		//ImGui::Checkbox("Another Window", &show_another_window);
-
-		//ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-		//ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-		//if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-		//	counter++;
-
-		ImGui::SameLine();
-		//ImGui::Text("counter = %d", counter);
-
+		if (withinReach)
+		{
+			ImGui::Text("Object within reach");
+		}
+		else
+		{
+			ImGui::Text("Object outside of reach");
+		}
+		
 		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 	}
@@ -840,14 +849,21 @@ void display(ImGuiIO& io)
 	glDisableVertexAttribArray(3);
 
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-		
+
 	// Update Arm positions
 	if (IKmethod == IKMethod::CCD)
 	{
-		if (!pause)
+		if (animType == AnimType::animate)
 		{
-			computeCCDLink();
-			pause = true;
+			if (!pause)
+			{
+				withinReach = computeCCDLink();
+				pause = true;
+			}
+		}
+		else
+		{
+			withinReach = computeCCDLink();
 		}
 	}
 	else
