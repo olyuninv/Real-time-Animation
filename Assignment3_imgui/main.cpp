@@ -124,7 +124,7 @@ enum AnimType
 };
 
 int IKmethod = IKMethod::CCD;
-int animType = AnimType::track;
+int animType = AnimType::animate;
 
 int numJoints = 2;
 float goal[3] = { 8.0f,0.0f,0.0f };
@@ -325,8 +325,8 @@ void createObjects()
 	sceneObjects[numObjects] = torso;
 	numObjects++;
 
-	CGObject topArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.5f, 1.0f, 1.5f), vec3(1.0f, 0.0f, 0.0f), 0.65f, NULL);
-	topArm.setInitialRotation(vec3(0.5f, 0.5f, 0.0f));
+	CGObject topArm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true, vec3(0.0f, 0.0f, 0.0f), vec3(1.5f, 1.0f, 1.5f), vec3(1.0f, 1.0f, 0.0f), 0.65f, NULL);
+	topArm.setInitialRotation(vec3(0.0f, 0.0f, -2.5f));
 	topArm.startVBO = torso.startVBO;  //reusing model
 	topArm.startIBO = torso.startIBO;  //reusing model
 	topArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
@@ -339,15 +339,45 @@ void createObjects()
 		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
 		topArm.rotationMatrix * vec4(0.0, topArm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
 		vec3(1.5f, 0.8f, 1.5f),
-		vec3(1.0f, 0.0f, 0.0f),
+		vec3(1.0f, 1.0f, 0.0f),
 		0.65f,
 		NULL);
 
-	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
+	bottomArm.setInitialRotation(vec3(0.0f, 0.0f, -2.0f));
 	bottomArm.startVBO = torso.startVBO;  //reusing model
 	bottomArm.startIBO = torso.startIBO;  //reusing model
 	bottomArm.VAOs.push_back(torso.VAOs[0]);  //reusing model
 	sceneObjects[numObjects] = bottomArm;
+	numObjects++;
+
+	CGObject palm = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true,
+		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
+		bottomArm.rotationMatrix * vec4(0.0, bottomArm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
+		vec3(1.5f, 0.3f, 1.5f),
+		vec3(1.0f, 1.0f, 0.0f),
+		0.65f,
+		NULL);
+
+	palm.setInitialRotation(vec3(0.0f, 0.0f, -1.5f));
+	palm.startVBO = torso.startVBO;  //reusing model
+	palm.startIBO = torso.startIBO;  //reusing model
+	palm.VAOs.push_back(torso.VAOs[0]);  //reusing model
+	sceneObjects[numObjects] = palm;
+	numObjects++;
+
+	CGObject fingers = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true,
+		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
+		palm.rotationMatrix * vec4(0.0, palm.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
+		vec3(1.5f, 0.15f, 1.5f),
+		vec3(1.0f, 1.0f, 0.0f),
+		0.65f,
+		NULL);
+
+	fingers.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
+	fingers.startVBO = torso.startVBO;  //reusing model
+	fingers.startIBO = torso.startIBO;  //reusing model
+	fingers.VAOs.push_back(torso.VAOs[0]);  //reusing model
+	sceneObjects[numObjects] = fingers;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
@@ -682,7 +712,7 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 	glUniform1i(glutils.useSpecularMapUniform3, useSpecularMap);
 
 	// DRAW objects
-	for (int i = 1; i < numObjects; i++)     // TODO : need to fix this hardcoding
+	for (int i = 1; i < numObjects - ((numObjects - 3) - numJoints); i++)     // TODO : need to fix this hardcoding
 	{
 		// update position based on previous joint
 		if (i > indexOfFirstJoint)
