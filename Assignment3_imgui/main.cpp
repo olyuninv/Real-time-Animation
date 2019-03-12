@@ -144,7 +144,7 @@ static void glfw_error_callback(int error, const char* description)
 
 
 //lighting position
-glm::vec3 lightPos(0.0f, 2.0f, -3.0f);
+glm::vec3 lightPos(0.0f, 3.0f, 2.0f);
 
 enum class textureInterpolation
 {
@@ -643,12 +643,12 @@ bool computeCCDLink()
 					//sceneObjects[k].setInitialRotation(newEulerAnglesTemp); // calculate depending on the previous object					
 					sceneObjects[k].rotationMatrix = glm::toMat4(quaternion) * sceneObjects[k].rotationMatrix;
 				}
+			}
 
-				if (--link < 0)
-				{
-					// move back to last link
-					link = numJoints - 1;
-				}
+			if (--link < 0)
+			{
+				// move back to last link
+				link = numJoints - 1;
 			}
 		}
 
@@ -684,6 +684,14 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 	// DRAW objects
 	for (int i = 1; i < numObjects; i++)     // TODO : need to fix this hardcoding
 	{
+		// update position based on previous joint
+		if (i > indexOfFirstJoint)
+		{
+			sceneObjects[i].position = sceneObjects[i - 1].position +
+				vec3(sceneObjects[i - 1].rotationMatrix * vec4(0.0, sceneObjects[i - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
+		
+		}
+
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(true);
 		glutils.updateUniformVariablesReflectance(globalCGObjectTransform, view);
 		sceneObjects[i].globalTransform = globalCGObjectTransform; // keep current state		
