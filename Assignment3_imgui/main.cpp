@@ -120,6 +120,7 @@ enum IKMethod
 enum AnimType
 {
 	track,
+	onclick,
 	animate
 };
 
@@ -906,7 +907,7 @@ void display(ImGuiIO& io)
 	// Update Arm positions
 	if (IKmethod == IKMethod::CCD)
 	{
-		if (animType == AnimType::animate)
+		if (animType == AnimType::onclick)
 		{
 			if (!pause)
 			{
