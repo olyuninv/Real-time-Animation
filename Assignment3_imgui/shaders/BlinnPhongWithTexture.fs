@@ -41,8 +41,8 @@ void main()
       vec3 diffuseComponent;
       vec3 specularComponent;
 
-      float specularStrength = 0.5;
-      float specularPower = 2.0;
+      float specularStrength = 0.5;     
+      float specularPower = 1.0;
       vec3 MaterialDiffuseColor =  texture(diffuseTexture, vec2(TexCoord.x,  -TexCoord.y)).rgb;    
 
       if (useNormalMap)
@@ -68,8 +68,7 @@ void main()
 	      //  - Looking into the reflection -> 1, Looking elsewhere -> < 1
 	      float cosAlpha = clamp( dot( E,R ), 0,1 );
 
-          // diffuseComponent          
-          
+          // diffuseComponent         
 	      diffuseComponent =  specularPower * MaterialDiffuseColor * cosTheta / (distance*distance);
                
           // specularComponent          
@@ -94,7 +93,7 @@ void main()
            // diffuse - World space
            float diff = max(dot(norm, lightDir), 0.0);
            diffuseComponent = diff * vec3(1.0f, 1.0f, 1.0f); // TODO: light color, diffuse coefficient
-           diffuseComponent = specularPower * diffuseComponent * MaterialDiffuseColor;
+           diffuseComponent = specularPower * diffuseComponent * objectColor; //* MaterialDiffuseColor;
 
            // specular - World space
            vec3 viewDir = normalize(viewPos - FragPos);

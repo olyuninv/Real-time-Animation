@@ -144,7 +144,7 @@ static void glfw_error_callback(int error, const char* description)
 
 
 //lighting position
-glm::vec3 lightPos(0.0f, 3.0f, 2.0f);
+glm::vec3 lightPos(1.0f, 1.0f, 3.0f);
 
 enum class textureInterpolation
 {
@@ -378,6 +378,21 @@ void createObjects()
 	fingers.startIBO = torso.startIBO;  //reusing model
 	fingers.VAOs.push_back(torso.VAOs[0]);  //reusing model
 	sceneObjects[numObjects] = fingers;
+	numObjects++;
+
+	CGObject snake = loadObjObject(new_meshesCylinder, new_tangentMeshesCylinder, false, true,
+		//calculateEndPoint (topArm.position, topArm.initialScaleVector.y * initialCylinderLength, topArm.eulerAngles.z, topArm.eulerAngles.x),
+		fingers.rotationMatrix * vec4(0.0, fingers.initialScaleVector.y * initialCylinderLength, 0.0, 1.0),
+		vec3(1.5f, 0.15f, 1.5f),
+		vec3(1.0f, 1.0f, 0.0f),
+		0.65f,
+		NULL);
+
+	snake.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
+	snake.startVBO = torso.startVBO;  //reusing model
+	snake.startIBO = torso.startIBO;  //reusing model
+	snake.VAOs.push_back(torso.VAOs[0]);  //reusing model
+	sceneObjects[numObjects] = snake;
 	numObjects++;
 
 	glutils.createVBO(n_vbovertices);
