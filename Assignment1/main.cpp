@@ -40,7 +40,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 24
+#define NUM_BLENDSHAPES 2
 #define ANIM_LINES 250
 
 using namespace glm;
@@ -854,7 +854,6 @@ void display()
 	glClearColor(0.78f, 0.84f, 0.49f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	// Rotate model
 	dt = glfwGetTime() - time;
 	if (dt < 0) dt = 0;
 	time += dt;
@@ -1021,7 +1020,7 @@ int main(void)
 	bar = TwNewBar("Blendshapes");
 
 	// Change the font size, and add a global message to the Help bar.
-	TwDefine(" Blendshapes size=' 320 450 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
+	TwDefine(" Blendshapes size=' 420 700 ' valueswidth=100 GLOBAL fontSize=3 help='Change parameters to control blendshapes' ");
 
 	TwAddButton(bar, "Reset", ResetCallback, weights, " label='Reset' ");
 
