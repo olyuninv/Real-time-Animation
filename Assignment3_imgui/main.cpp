@@ -32,6 +32,7 @@
 
 #include "opengl_utils.h"
 #include "CGobject.h"
+#include "Interpolate.h"
 
 #include "..\Dependencies\OBJ_Loader.h"
 
@@ -40,6 +41,7 @@
 #define MAX_OBJECTS 50
 #define MAX_IK_TRIES 100 // TIMES THROUGH THE CCD LOOP
 #define IK_POS_THRESH 0.01f // THRESHOLD FOR SUCCESS
+#define MAX_KEYFRAMES_GOAL 8 
 
 using namespace glm;
 using namespace std;
@@ -110,6 +112,9 @@ bool show_demo_window = true;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 bool withinReach = false;
+
+float keyframeGoalPositions[MAX_KEYFRAMES_GOAL][3];
+Curve* curve;
 
 enum IKMethod
 {
@@ -448,8 +453,57 @@ void loadCube()
 	}
 }
 
+void readKeyframePositionsFile(string file)
+{
+
+	ifstream myReadFile;
+	int lineNumber = 0;  //
+	int weightIndex = 0;
+
+	myReadFile.open(file);
+
+	char output[100];
+	if (myReadFile.is_open()) {
+		while (!myReadFile.eof()) {
+
+			myReadFile >> output;
+
+			float d2 = strtod(output, NULL);
+			keyframeGoalPositions[lineNumber][weightIndex] = d2;
+			weightIndex++;
+
+			if (weightIndex == 3)
+			{
+				lineNumber++;
+				weightIndex = 0;
+			}
+		}
+	}
+	myReadFile.close();
+}
+
+void populateCurve()
+{
+	curve = new Curve();
+	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
+
+	for (int i = 0; i < MAX_KEYFRAMES_GOAL; i++)
+	{
+		curve->add_way_point(glm::vec3(keyframeGoalPositions[i][0], keyframeGoalPositions[i][1], keyframeGoalPositions[i][2]));
+	}
+
+	std::cout << "nodes: " << curve->node_count() << std::endl;
+	std::cout << "total length: " << curve->total_length() << std::endl;
+	/*for (int i = 0; i < curve->node_count(); ++i) {
+		std::cout << "node #" << i << ": " << curve->node(i).data << " (length so far: " << curve->length_from_starting_point(i) << ")" << std::endl;
+	}*/	
+}
+
 void init()
 {
+	readKeyframePositionsFile("../Assignment3_imgui/ScriptedGoal.txt");
+	populateCurve();
+
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);// you enable blending function
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -462,7 +516,6 @@ void init()
 	glutils.createShaders();
 
 	glutils.setupUniformVariables();
-
 
 	// Setup cubemap texture
 	glGenTextures(4, textures);  //1, &textureIDcubemap);
@@ -735,7 +788,7 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 		{
 			sceneObjects[i].position = sceneObjects[i - 1].position +
 				vec3(sceneObjects[i - 1].rotationMatrix * vec4(0.0, sceneObjects[i - 1].initialScaleVector.y * initialCylinderLength, 0.0, 1.0));
-		
+
 		}
 
 		mat4 globalCGObjectTransform = sceneObjects[i].createTransform(true);
@@ -826,7 +879,7 @@ void drawImgui(ImGuiIO& io)
 		const char* items[] = { "CCD", "Jacobian" };
 		ImGui::Combo("IK method", &IKmethod, items, IM_ARRAYSIZE(items));
 
-		const char* items2[] = { "Track", "Animate" };
+		const char* items2[] = { "Track", "On Click", "Animate" };
 		ImGui::Combo("Animation method", &animType, items2, IM_ARRAYSIZE(items2));
 
 		ImGui::Spacing();
@@ -851,7 +904,7 @@ void drawImgui(ImGuiIO& io)
 		{
 			ImGui::Text("Object outside of reach");
 		}
-		
+
 		//ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		ImGui::End();
 	}
@@ -1026,6 +1079,7 @@ int main(void) {
 	glutils.deleteVertexArrays();
 	glutils.deletePrograms();
 	glutils.deleteBuffers();
+	delete curve;
 
 	// Cleanup
 	ImGui_ImplOpenGL3_Shutdown();
