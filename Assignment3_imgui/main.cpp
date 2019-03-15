@@ -125,12 +125,23 @@ enum IKMethod
 enum AnimType
 {
 	track,
-	onclick,
-	animate
+	onclick
+};
+
+enum AnimSpeed
+{
+	no_speed,
+	equal,
+	easeIn_easeOut
 };
 
 int IKmethod = IKMethod::CCD;
-int animType = AnimType::animate;
+int animType = AnimType::onclick;
+bool animStarted = false;
+float animStartTime = 0.0f;
+int animCurrFrame = 0;
+AnimSpeed animationSpeed = AnimSpeed::no_speed;
+float timePerLineSegment = 3.0f;
 
 int numJoints = 2;
 float goal[3] = { 8.0f,0.0f,0.0f };
@@ -150,7 +161,7 @@ static void glfw_error_callback(int error, const char* description)
 
 
 //lighting position
-glm::vec3 lightPos(1.0f, 1.0f, 3.0f);
+glm::vec3 lightPos(3.0f, 1.0f, 3.0f);
 
 enum class textureInterpolation
 {
@@ -496,7 +507,7 @@ void populateCurve()
 	std::cout << "total length: " << curve->total_length() << std::endl;
 	/*for (int i = 0; i < curve->node_count(); ++i) {
 		std::cout << "node #" << i << ": " << curve->node(i).data << " (length so far: " << curve->length_from_starting_point(i) << ")" << std::endl;
-	}*/	
+	}*/
 }
 
 void init()
@@ -670,20 +681,19 @@ vec3 getEulerAngles(mat4 rotationMatrix)
 	return vec3(psi1, theta1, phi1);
 }
 
-bool computeCCDLink()
+bool computeCCDLink(glm::vec3 goalVec)
 {
 	bool goalWithinThreshold = false;
 
 	int link = numJoints - 1;  // TODO: Add NUM_JOINTS UI
 	int tries = 0;
 
-	glm::vec3 currRoot, currEnd, goalVec, lastJointPosition, targetVector, currVector, normal;
+	glm::vec3 currRoot, currEnd, lastJointPosition, targetVector, currVector, normal;
 	float cosAngle, turnAngle, turnDegrees, lastJointLength;
 	quat quaternion;
 	int indexOfCurrLink, indexOfLastJoint;
 
 	indexOfLastJoint = indexOfFirstJoint + numJoints - 1;
-	goalVec = vec3(goal[0], goal[1], goal[2]);
 
 	do
 	{
@@ -763,10 +773,6 @@ bool computeJacobian()
 
 void displayScene(glm::mat4 projection, glm::mat4 view)
 {
-	glPushMatrix();
-
-	glLoadIdentity();
-
 	glUseProgram(glutils.ShaderWithTextureID);
 
 	glm::mat4 local1(1.0f);
@@ -781,7 +787,7 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 	glUniform1i(glutils.useSpecularMapUniform3, useSpecularMap);
 
 	// DRAW objects
-	for (int i = 1; i < numObjects - ((numObjects - 3) - numJoints); i++)     // TODO : need to fix this hardcoding
+	for (int i = 1; i < numObjects - ((numObjects - 3) - numJoints); i++)
 	{
 		// update position based on previous joint
 		if (i > indexOfFirstJoint)
@@ -823,9 +829,6 @@ void displayScene(glm::mat4 projection, glm::mat4 view)
 
 		glDisable(GL_TEXTURE_2D);
 	}
-
-	glPopMatrix();
-
 }
 
 void displayCubeMap(glm::mat4 projection, glm::mat4 view)
@@ -879,8 +882,15 @@ void drawImgui(ImGuiIO& io)
 		const char* items[] = { "CCD", "Jacobian" };
 		ImGui::Combo("IK method", &IKmethod, items, IM_ARRAYSIZE(items));
 
-		const char* items2[] = { "Track", "On Click", "Animate" };
+		const char* items2[] = { "Track", "On Click"};
 		ImGui::Combo("Animation method", &animType, items2, IM_ARRAYSIZE(items2));
+		
+		if (ImGui::Button("Show Animation"))
+		{
+			animStarted = true;	
+			animStartTime = glfwGetTime();
+			animCurrFrame = 0;
+		}
 
 		ImGui::Spacing();
 		ImGui::Separator();
@@ -939,14 +949,48 @@ void display(ImGuiIO& io)
 	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-		// DRAW CUBEMAP
+	if (animStarted)
+	{
+		view = glm::lookAt(glm::vec3(0.0f, 0.0f, 15.0f), glm::vec3(0.0f, 0.0f, 15.0f) + glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	}
+
+	// DRAW CUBEMAP
 	displayCubeMap(projection, view);
 
 	// DRAW SCENE
-	// Update target position from imGui
-	sceneObjects[sphereIndex].position.x = goal[0];
-	sceneObjects[sphereIndex].position.y = goal[1];
-	sceneObjects[sphereIndex].position.z = goal[2];
+
+	if (animStarted)
+	{	
+		if (animationSpeed == no_speed)
+		{
+			// check for end of animation
+			if (animCurrFrame < curve->node_count())
+			{
+				sceneObjects[sphereIndex].position.x = curve->node(animCurrFrame).x;
+				sceneObjects[sphereIndex].position.y = curve->node(animCurrFrame).y;
+				sceneObjects[sphereIndex].position.z = curve->node(animCurrFrame).z;
+				animCurrFrame++;
+			}
+			else
+			{
+				animStarted = false;
+				animStartTime = 0.0f;
+				animCurrFrame = 0;
+			}
+		}
+		else
+		{
+			float dt = currentFrame - animStartTime;
+			//TODO - easeIn - easeOut
+		}
+	}
+	else
+	{
+		// Update target position from imGui
+		sceneObjects[sphereIndex].position.x = goal[0];
+		sceneObjects[sphereIndex].position.y = goal[1];
+		sceneObjects[sphereIndex].position.z = goal[2];
+	}
 
 	displayScene(projection, view);
 
@@ -960,17 +1004,18 @@ void display(ImGuiIO& io)
 	// Update Arm positions
 	if (IKmethod == IKMethod::CCD)
 	{
-		if (animType == AnimType::onclick)
+		if (animStarted || animType == AnimType::track)
 		{
-			if (!pause)
-			{
-				withinReach = computeCCDLink();
-				pause = true;
-			}
+			withinReach = computeCCDLink(sceneObjects[sphereIndex].position);
 		}
 		else
 		{
-			withinReach = computeCCDLink();
+			// assume animation on-click - only update on button click
+			if (!pause)
+			{
+				withinReach = computeCCDLink(sceneObjects[sphereIndex].position);
+				pause = true;
+			}
 		}
 	}
 	else
