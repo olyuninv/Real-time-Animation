@@ -68,8 +68,8 @@ opengl_utils glutils;
 bool lbutton_down = false;
 
 // timing
-float deltaTime = 0.0f;	// time between current frame and last frame
-float lastFrame = 0.0f;
+float deltaTimeBetweenFrames = 0.0f;	// time between current frame and last frame
+float lastFrameTime = 0.0f;
 
 // camera movement
 GLfloat rotate_angle = 0.0f;
@@ -140,7 +140,11 @@ int animType = AnimType::onclick;
 bool animStarted = false;
 float animStartTime = 0.0f;
 int animCurrFrame = 0;
-AnimSpeed animationSpeed = AnimSpeed::no_speed;
+int animationSpeed = AnimSpeed::no_speed;
+float animationLength = 10.0f;  // 20 sec
+float equalSpeed = 0.0;
+float acceleration = 0.0;
+float deceleration = 0.0;
 float timePerLineSegment = 3.0f;
 
 int numJoints = 2;
@@ -156,9 +160,6 @@ static void glfw_error_callback(int error, const char* description)
 {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
-
-
-
 
 //lighting position
 glm::vec3 lightPos(3.0f, 1.0f, 3.0f);
@@ -390,7 +391,7 @@ void createObjects()
 		0.65f,
 		NULL);
 
-	fingers.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
+	fingers.setInitialRotation(vec3(0.0f, 0.0f, -1.0f));
 	fingers.startVBO = torso.startVBO;  //reusing model
 	fingers.startIBO = torso.startIBO;  //reusing model
 	fingers.VAOs.push_back(torso.VAOs[0]);  //reusing model
@@ -405,7 +406,7 @@ void createObjects()
 		0.65f,
 		NULL);
 
-	snake.setInitialRotation(vec3(0.0f, 0.0f, 0.0f));
+	snake.setInitialRotation(vec3(0.0f, 0.0f, -0.5f));
 	snake.startVBO = torso.startVBO;  //reusing model
 	snake.startIBO = torso.startIBO;  //reusing model
 	snake.VAOs.push_back(torso.VAOs[0]);  //reusing model
@@ -493,7 +494,7 @@ void readKeyframePositionsFile(string file)
 	myReadFile.close();
 }
 
-void populateCurve()
+void populateAnimationCurve()
 {
 	curve = new Curve();
 	curve->set_steps(100); // generate 100 interpolate points between the last 4 way points
@@ -502,6 +503,11 @@ void populateCurve()
 	{
 		curve->add_way_point(glm::vec3(keyframeGoalPositions[i][0], keyframeGoalPositions[i][1], keyframeGoalPositions[i][2]));
 	}
+
+	equalSpeed = curve->total_length() / animationLength;
+	//acceleration = 2 * curve->total_length() / (animationLength * animationLength);   // for the whole length
+	acceleration = 4 * curve->total_length() / (animationLength * animationLength);  // for half length	
+	deceleration = 4 * (curve->total_length() - (acceleration * animationLength * animationLength / 2))  / (animationLength * animationLength); //4 * curve->total_length() / (animationLength * animationLength);
 
 	std::cout << "nodes: " << curve->node_count() << std::endl;
 	std::cout << "total length: " << curve->total_length() << std::endl;
@@ -513,7 +519,7 @@ void populateCurve()
 void init()
 {
 	readKeyframePositionsFile("../Assignment3_imgui/ScriptedGoal.txt");
-	populateCurve();
+	populateAnimationCurve();
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);// you enable blending function
@@ -882,15 +888,25 @@ void drawImgui(ImGuiIO& io)
 		const char* items[] = { "CCD", "Jacobian" };
 		ImGui::Combo("IK method", &IKmethod, items, IM_ARRAYSIZE(items));
 
-		const char* items2[] = { "Track", "On Click"};
+		const char* items2[] = { "Track", "On Click" };
 		ImGui::Combo("Animation method", &animType, items2, IM_ARRAYSIZE(items2));
-		
+
 		if (ImGui::Button("Show Animation"))
 		{
-			animStarted = true;	
+			animStarted = true;
 			animStartTime = glfwGetTime();
 			animCurrFrame = 0;
+
+			if (animationSpeed == AnimSpeed::equal)
+			{
+				// divide distance by required time
+				curve->total_length() / animationLength;
+
+			}
 		}
+
+		const char* items3[] = { "None", "Equal", "Accelerate" };
+		ImGui::Combo("Animation speed", &animationSpeed, items3, IM_ARRAYSIZE(items3));
 
 		ImGui::Spacing();
 		ImGui::Separator();
@@ -931,9 +947,9 @@ void drawImgui(ImGuiIO& io)
 
 void display(ImGuiIO& io)
 {
-	float currentFrame = glfwGetTime();
-	deltaTime = currentFrame - lastFrame;
-	lastFrame = currentFrame;
+	float currentFrameTime = glfwGetTime();
+	deltaTimeBetweenFrames = currentFrameTime - lastFrameTime;
+	lastFrameTime = currentFrameTime;
 
 	// inpuT
 	processInput(window);
@@ -960,7 +976,7 @@ void display(ImGuiIO& io)
 	// DRAW SCENE
 
 	if (animStarted)
-	{	
+	{
 		if (animationSpeed == no_speed)
 		{
 			// check for end of animation
@@ -980,8 +996,69 @@ void display(ImGuiIO& io)
 		}
 		else
 		{
-			float dt = currentFrame - animStartTime;
-			//TODO - easeIn - easeOut
+			float dt = currentFrameTime - animStartTime;
+
+			if (dt < animationLength)
+			{
+				float distanceTravelled;
+
+				if (animationSpeed == AnimSpeed::equal)
+				{
+					distanceTravelled = equalSpeed * dt;
+				}
+				else
+				{
+					/*Math.easeInOutQuad = function(t, b, c, d) {
+						t /= d / 2;
+						if (t < 1) return c / 2 * t*t + b;
+						t--;
+						return -c / 2 * (t*(t - 2) - 1) + b;
+					};*/
+
+					//ease in out
+					if (dt < 0.5f * animationLength)
+					{
+						// accelearate
+						distanceTravelled = 0.5f * acceleration * dt * dt;
+					}
+					else
+					{
+						// decelearate
+						dt = dt - 0.5f * animationLength;
+						distanceTravelled = (curve ->total_length() / 2) + (acceleration * animationLength / 2) * dt + (0.5f * deceleration * dt * dt);
+					}
+
+					/*if (dt < 0.5f * animationLength)
+					{
+						distanceTravelled = (curve->total_length() / 2) / (dt * dt);
+					}
+					else
+					{
+						distanceTravelled = (curve->total_length() / 2) - curve->total_length() / (2 * (dt * (dt - 2) - 1));
+					}*/
+				}
+
+				// find node that correponds to this distance - search from last frame
+				for (int k = animCurrFrame; k < curve->node_count(); k++)
+				{
+					if (curve->length_from_starting_point(k) > distanceTravelled)
+					{
+						//found the right point
+						sceneObjects[sphereIndex].position.x = curve->node(k).x;
+						sceneObjects[sphereIndex].position.y = curve->node(k).y;
+						sceneObjects[sphereIndex].position.z = curve->node(k).z;
+						animCurrFrame = k;
+						break;
+					}
+				}
+			}
+			else
+			{
+				// Reset
+				animStarted = false;
+				animStartTime = 0.0f;
+				animCurrFrame = 0;
+			}
 		}
 	}
 	else
@@ -1047,7 +1124,7 @@ int main(void) {
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Surface Mapping", NULL, NULL);
+	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Inverse Kinematics", NULL, NULL);
 	if (window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
 		getchar();
@@ -1142,7 +1219,7 @@ void processInput(GLFWwindow *window)
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
 
-	float cameraSpeed = 2.5 * deltaTime;
+	float cameraSpeed = 2.5 * deltaTimeBetweenFrames;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
 		cameraPos += cameraSpeed * cameraFront;
 	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
