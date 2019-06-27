@@ -76,7 +76,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\Dependencies\AntTweakBar\include;..\Dependencies\glfw\include;..\Dependencies\glew\include;..\Dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\Dependencies;..\Dependencies\AntTweakBar\include;..\Dependencies\glfw\include;..\Dependencies\glew\include;..\Dependencies\glm;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>..\Dependencies\AntTweakBar\lib;..\Dependencies\glfw\lib-vc2015;..\Dependencies\glew\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>

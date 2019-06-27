@@ -63,6 +63,8 @@ bool read_obj(const std::string& filename,
 
 size_t split(const std::string &txt, std::vector<std::string> &strs, char ch);
 
+void direct_manipulation();
+
 // variables
 TwBar *bar;         // Pointer to a tweak bar
 
@@ -105,6 +107,8 @@ float lastY = SCR_HEIGHT / 2.0; //600.0 / 2.0;
 float fov = 45.0f;
 float nearclip = 0.1f;
 float farclip = 100.0f;
+int lastMouseX = 0;
+int lastMouseY = 0;
 
 // camera
 glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 10.0f);
@@ -284,23 +288,29 @@ void GLFWCALL mouse_button_callback(int button, int action)
 		{
 			if (button == GLFW_MOUSE_BUTTON_LEFT)
 			{
+				int mouse_x, mouse_y;
+
+				//getting cursor position
+				glfwGetMousePos(&mouse_x, &mouse_y);
+
 				if (GLFW_PRESS == action)
 				{
 					lbutton_down = true;
+					lastMouseX = mouse_x;
+					lastMouseY = mouse_y;
 				}
 				else if (GLFW_RELEASE == action)
 				{
 					lbutton_down = false;
 					allowDrag = false;
+					if ((mouse_x - lastMouseX) != 0 || (mouse_y - lastMouseY) != 0)
+					{
+						direct_manipulation();
+					}
 				}
 
 				if (lbutton_down)
 				{
-					int mouse_x, mouse_y;
-
-					//getting cursor position
-					glfwGetMousePos(&mouse_x, &mouse_y);
-
 					bool foundIntersection = false;
 					bool foundIntersectionWithMarker = false;
 
@@ -476,13 +486,15 @@ void GLFWCALL key_callback(int button, int action)
 	}
 }
 
-void direct_manip_method()
+void direct_manipulation()
 {
-	unsigned int num_rows = 3 * constraintVertexIndices.size() + numBlendshapes + numBlendshapes;
+	if (constraintVertexIndices.size() == 1)
+		return;
+
+	unsigned int num_rows = 3 * constraintVertexIndices.size(); // +numBlendshapes + numBlendshapes;
 	unsigned int num_cols = numBlendshapes;
 
 	Eigen::MatrixXf A;
-	Eigen::VectorXf b;
 	float alpha = 0.01f;
 	float mu = 0.001f;
 
@@ -491,45 +503,40 @@ void direct_manip_method()
 
 	// fill the matrix B by acessing element-wise B(row,column) 
 
-	// First add Blendshape matrix
+	// Blendshape matrix
 	for (int i = 0; i < constraintVertexIndices.size(); i++)
 	{
 		for (int j = 0; j < num_cols; j++)
 		{
-			B(3 * i, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i]];
-			B(3 * i + 1, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 1];
-			B(3 * i + 2, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 2];
-		}
-	}
-
-	// 2nd add alpha multiplied by Index matrix
-	for (int i = 0; i < numBlendshapes; i++)
-	{
-		for (int j = 0; j < num_cols; j++)
-		{
-			if (i == j)
+			if (i == 0)  // manipulator
 			{
-				B(3 * constraintVertexIndices.size() + i, j) = alpha;
+				B(3 * i, j) = blendshapes[j].deltaBlendshape[3 * selectedVertexIndex];
+				B(3 * i + 1, j) = blendshapes[j].deltaBlendshape[3 * selectedVertexIndex + 1];
+				B(3 * i + 2, j) = blendshapes[j].deltaBlendshape[3 * selectedVertexIndex + 2];
 			}
 			else
 			{
-				B(3 * constraintVertexIndices.size() + i, j) = 0;
+				B(3 * i, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i]];
+				B(3 * i + 1, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 1];
+				B(3 * i + 2, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 2];
 			}
 		}
 	}
 
-	// 3rd add mu multiplied by Index matrix
+	// Identity matrix 
+	Eigen::MatrixXf I(numBlendshapes, numBlendshapes);
+
 	for (int i = 0; i < numBlendshapes; i++)
 	{
-		for (int j = 0; j < num_cols; j++)
+		for (int j = 0; j < numBlendshapes; j++)
 		{
 			if (i == j)
 			{
-				B(3 * constraintVertexIndices.size() + numBlendshapes + i, j) = mu;
+				I(i, j) = 1;
 			}
 			else
 			{
-				B(3 * constraintVertexIndices.size() + numBlendshapes + i, j) = 0;
+				I(i, j) = 0;
 			}
 		}
 	}
@@ -539,22 +546,34 @@ void direct_manip_method()
 
 	// fill the vector b by acessing element-wise b(row)
 
-	// 1st 
+	// constraints - neutral 
+	for (int i = 0; i < constraintVertexIndices.size(); i++)
+	{
+		b(3 * i) = constraintObjects[i].position.x - neutralFace.vpositions[3 * i];
+		b(3 * i + 1) = constraintObjects[i].position.y - neutralFace.vpositions[3 * i + 1];
+		b(3 * i + 2) = constraintObjects[i].position.z - neutralFace.vpositions[3 * i + 2];
+	}
 
-	// 2nd add previous weights multiplied by alpha
+	// Previous weights
+	Eigen::VectorXf W(numBlendshapes);
+
 	for (int i = 0; i < numBlendshapes; i++)
 	{
-		b(i) = alpha * weights[i];		
+		W(i) = weights[i];
 	}
 
 	//solve the least-squares problem A * w = b with A=BtB and b= Btb
-	//the function B.transpose() returns the transpose of a matrix
-	//...
-	Eigen::LDLT<Eigen::MatrixXf> solver(A);
-	Eigen::VectorXf w = solver.solve(b);
+
+	A = B.transpose() * B + (alpha + mu) * I;
+	Eigen::VectorXf b_solve = B.transpose() * b + alpha * W;
+	Eigen::LDLT<Eigen::MatrixXf> solver(A);	
+	Eigen::VectorXf w = solver.solve(b_solve);
 
 	//copy back the weights my_weights[row] = w(row)
-
+	for (int i = 0; i < numBlendshapes; i++)
+	{
+		weights[i] = w(i);
+	}
 }
 
 void addToObjectBuffer(Assignment1::CGObject *cg_object)
