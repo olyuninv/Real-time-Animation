@@ -41,15 +41,6 @@ namespace Assignment1
 			customNormals[i] += neutralFace.vnormals[i];// *neutralWeight;
 		}
 
-		//// normalise the normals
-		//for (int i = 0; i < neutralFace.numVertices * 3; i+= 3 )
-		//{
-		//	float normalLength = sqrt(customNormals[i] * customNormals[i] + customNormals[i + 1] * customNormals[i + 1] + customNormals[i + 2] * customNormals[i + 2]);
-		//	customNormals[i] = customNormals[i] / normalLength;
-		//	customNormals[i + 1] = customNormals[i + 1] / normalLength;
-		//	customNormals[i + 2] = customNormals[i + 2] / normalLength;
-		//}
-
 		delete[] adjustedWeights;
 		adjustedWeights = nullptr;
 	}
@@ -64,23 +55,6 @@ namespace Assignment1
 
 		for (int i = 0; i < indices.size(); i += 3)
 		{
-			// first point index = indices[i]
-			// second point index = indices[i + 1]
-			// third point index = indices[i + 2]
-			// start of 3 floats for Point 1 = indices[i] * 3
-			// start of 3 floats for Point 2 = indices[i + 1] * 3
-			// start of 3 floats for Point 3 = indices[i + 2] * 3
-
-			// Point 1 x = customPositions[indices[i] * 3]
-			// Point 1 y = customPositions[indices[i] * 3 + 1]
-			// Point 1 z = customPositions[indices[i] * 3 + 2]
-			// Point 2 x = customPositions[indices[i + 1] * 3]
-			// Point 2 y = customPositions[indices[i + 1] * 3 + 1]
-			// Point 2 z = customPositions[indices[i + 1] * 3 + 2]
-			// Point 3 x = customPositions[indices[i + 2] * 3]
-			// Point 3 y = customPositions[indices[i + 2] * 3 + 1]
-			// Point 3 z = customPositions[indices[i + 2] * 3 + 2]			
-
 			glm::vec3 v1 = glm::vec3(customPositions[indices[i + 1] * 3] - customPositions[indices[i] * 3],
 				customPositions[indices[i + 1] * 3 + 1] - customPositions[indices[i] * 3 + 1],
 				customPositions[indices[i + 1] * 3 + 2] - customPositions[indices[i] * 3 + 2]);

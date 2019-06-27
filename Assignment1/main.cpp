@@ -40,7 +40,7 @@
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 #define MAX_OBJECTS 50
 #define MAX_MARKERS 50
-#define NUM_BLENDSHAPES 2
+#define NUM_BLENDSHAPES 24
 #define ANIM_LINES 250
 
 using namespace glm;
