@@ -25,6 +25,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <Eigen/Dense>
+#include <Eigen/Sparse>
 
 #include "opengl_utils.h"
 #include "CGobject.h"
@@ -474,6 +476,87 @@ void GLFWCALL key_callback(int button, int action)
 	}
 }
 
+void direct_manip_method()
+{
+	unsigned int num_rows = 3 * constraintVertexIndices.size() + numBlendshapes + numBlendshapes;
+	unsigned int num_cols = numBlendshapes;
+
+	Eigen::MatrixXf A;
+	Eigen::VectorXf b;
+	float alpha = 0.01f;
+	float mu = 0.001f;
+
+	//setup left-hand side
+	Eigen::MatrixXf B(num_rows, num_cols); //the delta-blendshape matrix + additional weight normalization
+
+	// fill the matrix B by acessing element-wise B(row,column) 
+
+	// First add Blendshape matrix
+	for (int i = 0; i < constraintVertexIndices.size(); i++)
+	{
+		for (int j = 0; j < num_cols; j++)
+		{
+			B(3 * i, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i]];
+			B(3 * i + 1, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 1];
+			B(3 * i + 2, j) = blendshapes[j].deltaBlendshape[3 * constraintVertexIndices[i] + 2];
+		}
+	}
+
+	// 2nd add alpha multiplied by Index matrix
+	for (int i = 0; i < numBlendshapes; i++)
+	{
+		for (int j = 0; j < num_cols; j++)
+		{
+			if (i == j)
+			{
+				B(3 * constraintVertexIndices.size() + i, j) = alpha;
+			}
+			else
+			{
+				B(3 * constraintVertexIndices.size() + i, j) = 0;
+			}
+		}
+	}
+
+	// 3rd add mu multiplied by Index matrix
+	for (int i = 0; i < numBlendshapes; i++)
+	{
+		for (int j = 0; j < num_cols; j++)
+		{
+			if (i == j)
+			{
+				B(3 * constraintVertexIndices.size() + numBlendshapes + i, j) = mu;
+			}
+			else
+			{
+				B(3 * constraintVertexIndices.size() + numBlendshapes + i, j) = 0;
+			}
+		}
+	}
+
+	// setup right-hand side
+	Eigen::VectorXf b(num_rows);
+
+	// fill the vector b by acessing element-wise b(row)
+
+	// 1st 
+
+	// 2nd add previous weights multiplied by alpha
+	for (int i = 0; i < numBlendshapes; i++)
+	{
+		b(i) = alpha * weights[i];		
+	}
+
+	//solve the least-squares problem A * w = b with A=BtB and b= Btb
+	//the function B.transpose() returns the transpose of a matrix
+	//...
+	Eigen::LDLT<Eigen::MatrixXf> solver(A);
+	Eigen::VectorXf w = solver.solve(b);
+
+	//copy back the weights my_weights[row] = w(row)
+
+}
+
 void addToObjectBuffer(Assignment1::CGObject *cg_object)
 {
 	int VBOindex = cg_object->startVBO;
@@ -910,9 +993,9 @@ void display()
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	glUniform3f(glutils.lightColorLoc, 1.0f, 1.0f, 1.0f);
-		
+
 	glUniform3f(glutils.lightPosLoc, lightPos.x, lightPos.y, lightPos.z);
-	
+
 	glUniform3f(glutils.viewPosLoc, cameraPos.x, cameraPos.y, cameraPos.z);
 
 	drawFace(projection, view);
@@ -934,7 +1017,7 @@ void display()
 					customFace.vpositions[selectedVertexIndex * 3 + 1],
 					customFace.vpositions[selectedVertexIndex * 3 + 2]);
 				globalCGObjectTransform = customFace.globalTransform * constraintObjects[0].createTransform();  //sphere	
-			}			
+			}
 			else
 			{
 				mat4 localTransform = mat4(1.0);
@@ -944,10 +1027,10 @@ void display()
 					0.2f / customFace.initialScaleVector.z));
 				*/
 				localTransform = glm::scale(localTransform, vec3(0.2f, 0.2f, 0.2f));
-				globalCGObjectTransform =  localTransform; //customFace.globalTransform *
+				globalCGObjectTransform = localTransform; //customFace.globalTransform *
 
 			}
-			
+
 			glutils.updateUniformVariables(globalCGObjectTransform);
 			constraintObjects[0].globalTransform = globalCGObjectTransform; // keep current state		
 
