@@ -549,9 +549,19 @@ void direct_manipulation()
 	// constraints - neutral 
 	for (int i = 0; i < constraintVertexIndices.size(); i++)
 	{
-		b(3 * i) = constraintObjects[i].position.x - neutralFace.vpositions[3 * i];
-		b(3 * i + 1) = constraintObjects[i].position.y - neutralFace.vpositions[3 * i + 1];
-		b(3 * i + 2) = constraintObjects[i].position.z - neutralFace.vpositions[3 * i + 2];
+		if (i == 0) // selected vertex
+		{
+			b(3 * i) = customFace.vpositions[3 * selectedVertexIndex] - constraintObjects[0].position.x; 
+			b(3 * i + 1) = customFace.vpositions[3 * selectedVertexIndex + 1] - constraintObjects[0].position.y; 
+			b(3 * i + 2) = customFace.vpositions[3 * selectedVertexIndex + 2] - constraintObjects[0].position.z; 
+		}
+		else
+		{
+			b(3 * i) = constraintObjects[i].position.x - constraintObjects[0].position.x; 
+			b(3 * i + 1) = constraintObjects[i].position.y - constraintObjects[0].position.y; 
+			b(3 * i + 2) = constraintObjects[i].position.z - constraintObjects[0].position.z; 
+		}
+		
 	}
 
 	// Previous weights
